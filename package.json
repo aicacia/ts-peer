@@ -1,0 +1,77 @@
+{
+  "name": "@aicacia/peer",
+  "version": "0.1.0",
+  "description": "peerjs wrapper to make it easier to write p2p applications",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/aicacia/libs/ts-peer.git"
+  },
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "ts-node node_modules/.bin/tape src/**/*.test.{ts,tsx} | tap-spec",
+    "coverage": "nyc --reporter=lcov --require ts-node/register tape src/**/*.test.{ts,tsx} | tap-spec; nyc report ---reporter=text",
+    "clean": "rm -rf ./lib",
+    "lint": "eslint . --fix",
+    "doc": "typedoc --entryPoints src",
+    "prettier": "prettier --ignore-path ./.eslintignore --ignore-unknown --write .",
+    "preCommit": "npm run prettier && npm run lint && npm run coverage && npm run prepublishOnly",
+    "example": "parcel serve example/index.html"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run preCommit"
+    }
+  },
+  "keywords": [
+    "peer",
+    "peerjs",
+    "p2p"
+  ],
+  "author": "Nathan Faucett",
+  "license": "(MIT OR Apache-2.0)",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "@types/peerjs": "1",
+    "@types/tape": "4",
+    "@typescript-eslint/eslint-plugin": "4",
+    "@typescript-eslint/parser": "4",
+    "eslint": "7",
+    "eslint-config-prettier": "7",
+    "eslint-plugin-prettier": "3",
+    "husky": "4",
+    "nyc": "15",
+    "parcel": "next",
+    "peerjs": "1",
+    "prettier": "2",
+    "tap-nyc": "1",
+    "tap-spec": "5",
+    "tape": "5",
+    "ts-node": "9",
+    "tslib": "2",
+    "typedoc": "beta",
+    "typescript": "4"
+  },
+  "dependencies": {
+    "@aicacia/core": "0",
+    "@aicacia/json": "0"
+  },
+  "peerDependencies": {
+    "tslib": "2",
+    "peerjs": "1"
+  },
+  "nyc": {
+    "include": [
+      "src"
+    ],
+    "exclude": [
+      "src/**/*.test.*"
+    ],
+    "extension": [
+      ".ts",
+      ".tsx"
+    ]
+  }
+}

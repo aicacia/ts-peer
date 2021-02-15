@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "target": "ES2015",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "outDir": "lib",
+    "strict": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "lib": ["esnext"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.*"]
+}

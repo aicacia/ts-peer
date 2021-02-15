@@ -1,0 +1,16 @@
+.parcel-cache
+.github
+.nyc_output
+.vscode
+dist
+example
+coverage
+docs
+src
+node_modules
+.editorconfig
+.eslintignore
+.eslintrc
+.gitignore
+npm-debug.log
+tsconfig.json
