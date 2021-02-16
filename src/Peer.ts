@@ -8,10 +8,7 @@ import { IMessage, isMessage, MessageType } from "./Message";
 export interface Peer<T = any> {
   on(event: "open", listener: (this: Peer) => void): this;
   on(event: "error", listener: (this: Peer, error: PeerError) => void): this;
-  on(
-    event: "connection",
-    listener: (this: Peer, dataConnection: DataConnection) => void
-  ): this;
+  on(event: "connection", listener: (this: Peer, id: string) => void): this;
   on(event: "disconnection", listener: (this: Peer, id: string) => void): this;
   on(
     event: "message",
@@ -19,10 +16,7 @@ export interface Peer<T = any> {
   ): this;
   off(event: "open", listener: (this: Peer) => void): this;
   off(event: "error", listener: (this: Peer, error: PeerError) => void): this;
-  off(
-    event: "connection",
-    listener: (this: Peer, dataConnection: DataConnection) => void
-  ): this;
+  off(event: "connection", listener: (this: Peer, id: string) => void): this;
   off(event: "disconnection", listener: (this: Peer, id: string) => void): this;
   off(
     event: "message",
@@ -39,16 +33,19 @@ export class Peer<T = any> extends EventEmitter {
     this.peer = peer;
     this.peer.on("error", this.onError);
     this.peer.on("connection", (dataConnection) => {
-      const onOpen = () => {
-        dataConnection.send({
-          type: MessageType.Peers,
-          payload: this.getPeerIds(),
-        });
-        dataConnection.off("open", onOpen);
-      };
-      dataConnection.on("open", onOpen);
-
-      this.onDataConnection(dataConnection);
+      if (dataConnection.open) {
+        this.onDataConnection(dataConnection);
+      } else {
+        const onOpen = () => {
+          dataConnection.send({
+            type: MessageType.Peers,
+            payload: this.getPeerIds(),
+          });
+          dataConnection.off("open", onOpen);
+          this.onDataConnection(dataConnection);
+        };
+        dataConnection.on("open", onOpen);
+      }
     });
   }
 
@@ -85,10 +82,13 @@ export class Peer<T = any> extends EventEmitter {
       setTimeout(reconnect, timeout);
     });
 
-    dataConnection.on("error", onClose);
+    dataConnection.on("error", (error: PeerError) => {
+      onClose();
+      this.emit("connection-error", error, id);
+    });
 
     this.peers[id] = dataConnection;
-    this.emit("connection", dataConnection);
+    this.emit("connection", id);
   };
 
   onMessage = (message: IMessage<T>) => {
