@@ -91,7 +91,7 @@ export class Peer<T = any> extends EventEmitter {
     this.emit("connection", id);
   };
 
-  onMessage = (message: IMessage<T>) => {
+  private onMessage = (message: IMessage<T>) => {
     if (message.type === MessageType.Peers) {
       for (const peerId of message.payload as any) {
         if (peerId !== this.getId()) {
