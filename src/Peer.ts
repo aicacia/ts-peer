@@ -1,6 +1,6 @@
 import { Option } from "@aicacia/core";
 import { EventEmitter } from "events";
-import PeerJS, { PeerJSOption, DataConnection } from "peerjs";
+import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 import { IMessage, isMessage, MessageType } from "./Message";
 
@@ -103,9 +103,7 @@ export class Peer<T = any> extends EventEmitter {
     }
   };
 
-  static create<T = any>(id?: string, options?: PeerJSOption) {
-    const peer = new PeerJS(id, options);
-
+  static create<T = any>(peer: PeerJS) {
     return new Promise<Peer<T>>((resolve, reject) => {
       const onOpen = () => {
         peer.off("open", onOpen);

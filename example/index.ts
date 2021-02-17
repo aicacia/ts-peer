@@ -1,3 +1,4 @@
+import PeerJS from "peerjs";
 import { Peer } from "../src";
 
 const APP_ID = "example-peers-aicacia-com-";
@@ -27,12 +28,12 @@ async function main() {
     messageBtn = document.getElementById("message-btn") as HTMLButtonElement;
 
   peerBtn.addEventListener("click", async () => {
-    peer = await Peer.create(getAppPeerId(peerInput.value));
+    peer = await Peer.create(new PeerJS(getAppPeerId(peerInput.value)));
 
-    peer.on("connection", (dataConnection) => {
+    peer.on("connection", (peerId) => {
       const li = document.createElement("li");
-      li.id = `peer-${dataConnection.peer}`;
-      li.textContent = getPeerIdFromAppPeerId(dataConnection.peer);
+      li.id = `peer-${peerId}`;
+      li.textContent = getPeerIdFromAppPeerId(peerId);
       peers.appendChild(li);
 
       join.style.display = "none";
