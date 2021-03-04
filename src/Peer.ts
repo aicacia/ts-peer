@@ -8,14 +8,26 @@ import { IMessage, isMessage, MessageType } from "./Message";
 export interface Peer<T = any> {
   on(event: "open", listener: (this: Peer) => void): this;
   on(event: "error", listener: (this: Peer, error: PeerError) => void): this;
+  on(
+    event: "connection-error",
+    listener: (this: Peer, error: PeerError, from: string) => void
+  ): this;
   on(event: "connection", listener: (this: Peer, id: string) => void): this;
   on(event: "disconnection", listener: (this: Peer, id: string) => void): this;
   on(
     event: "message",
     listener: (this: Peer, message: T, from: string) => void
   ): this;
+  on(
+    event: "invalid-message",
+    listener: (this: Peer, message: any, from: string) => void
+  ): this;
   off(event: "open", listener: (this: Peer) => void): this;
   off(event: "error", listener: (this: Peer, error: PeerError) => void): this;
+  off(
+    event: "connection-error",
+    listener: (this: Peer, error: PeerError, from: string) => void
+  ): this;
   off(event: "connection", listener: (this: Peer, id: string) => void): this;
   off(event: "disconnection", listener: (this: Peer, id: string) => void): this;
   off(
@@ -24,13 +36,21 @@ export interface Peer<T = any> {
   ): this;
 }
 
+export interface IPeerOptions {
+  reconnectTimeoutMS?: number;
+}
+
 export class Peer<T = any> extends EventEmitter {
   private peer: PeerJS;
   private peers: Record<string, DataConnection> = {};
+  private reconnectTimeoutMS = 60_000;
 
-  constructor(peer: PeerJS) {
+  constructor(peer: PeerJS, options: IPeerOptions = {}) {
     super();
     this.peer = peer;
+    if (options.reconnectTimeoutMS) {
+      this.reconnectTimeoutMS = options.reconnectTimeoutMS;
+    }
     this.peer.on("error", this.onError);
     this.peer.on("connection", (dataConnection) => {
       if (dataConnection.open) {
@@ -59,6 +79,8 @@ export class Peer<T = any> extends EventEmitter {
     dataConnection.on("data", (data: any) => {
       if (isMessage(data)) {
         this.onMessage(data);
+      } else {
+        this.emit("invalid-message", data, id);
       }
     });
 
@@ -73,9 +95,9 @@ export class Peer<T = any> extends EventEmitter {
       let timeout = 1000;
       const reconnect = () => {
         this.connect(id).catch(() => {
-          if (timeout > 60000) {
+          if (timeout > this.reconnectTimeoutMS) {
             timeout *= 2;
-            setTimeout(reconnect, timeout * 2);
+            setTimeout(reconnect, timeout);
           }
         });
       };

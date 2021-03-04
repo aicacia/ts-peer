@@ -31,12 +31,13 @@ async function main() {
     peer = await Peer.create(new PeerJS(getAppPeerId(peerInput.value)));
 
     peer.on("connection", (peerId) => {
-      const li = document.createElement("li");
-      li.id = `peer-${peerId}`;
-      li.textContent = getPeerIdFromAppPeerId(peerId);
-      peers.appendChild(li);
-
-      join.style.display = "none";
+      const id = `peer-${peerId}`;
+      if (!document.getElementById(id)) {
+        const li = document.createElement("li");
+        li.id = id;
+        li.textContent = getPeerIdFromAppPeerId(peerId);
+        peers.appendChild(li);
+      }
       message.style.display = "";
     });
     peer.on("disconnection", (id) =>
@@ -54,8 +55,8 @@ async function main() {
   joinBtn.addEventListener("click", async () => {
     if (peer) {
       await peer.connect(getAppPeerId(joinInput.value));
-      join.style.display = "none";
       message.style.display = "";
+      joinInput.value = "";
     }
   });
 

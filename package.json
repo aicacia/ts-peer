@@ -39,11 +39,11 @@
     "@typescript-eslint/eslint-plugin": "4",
     "@typescript-eslint/parser": "4",
     "eslint": "7",
-    "eslint-config-prettier": "7",
+    "eslint-config-prettier": "8",
     "eslint-plugin-prettier": "3",
     "husky": "4",
     "nyc": "15",
-    "parcel": "next",
+    "parcel": "^2.0.0-nightly.614",
     "peerjs": "1",
     "prettier": "2",
     "tap-nyc": "1",
@@ -51,7 +51,7 @@
     "tape": "5",
     "ts-node": "9",
     "tslib": "2",
-    "typedoc": "beta",
+    "typedoc": "^0.20.29",
     "typescript": "4"
   },
   "dependencies": {
