@@ -180,14 +180,11 @@ export class Peer<T = any> extends EventEmitter {
   }
 
   send(to: string, payload: T) {
-    const dataConnection = this.getPeer(to);
-    if (dataConnection) {
-      dataConnection.send({
-        type: MessageType.Data,
-        from: this.getId(),
-        payload,
-      });
-    }
+    this.getPeer(to)?.send({
+      type: MessageType.Data,
+      from: this.getId(),
+      payload,
+    });
     return this;
   }
 
