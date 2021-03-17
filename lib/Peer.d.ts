@@ -36,4 +36,5 @@ export declare class Peer<T = any> extends EventEmitter {
     getPeers(): PeerJS.DataConnection[];
     send(to: string, payload: T): this;
     broadcast(payload: T): this;
+    destroy(): this;
 }

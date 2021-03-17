@@ -197,4 +197,10 @@ export class Peer<T = any> extends EventEmitter {
 
     return this;
   }
+
+  destroy() {
+    this.peer.destroy();
+    this.peers = {};
+    return this;
+  }
 }
