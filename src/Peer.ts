@@ -1,4 +1,3 @@
-import { Option } from "@aicacia/core";
 import { EventEmitter } from "events";
 import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
@@ -170,8 +169,8 @@ export class Peer<T = any> extends EventEmitter {
     }
   }
 
-  getPeer(id: string) {
-    return Option.from(this.peers[id]);
+  getPeer(id: string): DataConnection | undefined {
+    return this.peers[id];
   }
   getPeerIds() {
     return Object.keys(this.peers);
@@ -181,13 +180,14 @@ export class Peer<T = any> extends EventEmitter {
   }
 
   send(to: string, payload: T) {
-    this.getPeer(to).map((dataConnection) =>
+    const dataConnection = this.getPeer(to);
+    if (dataConnection) {
       dataConnection.send({
         type: MessageType.Data,
         from: this.getId(),
         payload,
-      })
-    );
+      });
+    }
     return this;
   }
 

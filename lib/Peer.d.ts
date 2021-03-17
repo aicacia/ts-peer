@@ -1,7 +1,6 @@
 /// <reference types="node" />
-import { Option } from "@aicacia/core";
 import { EventEmitter } from "events";
-import PeerJS from "peerjs";
+import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 export interface Peer<T = any> {
     on(event: "open", listener: (this: Peer) => void): this;
@@ -32,7 +31,7 @@ export declare class Peer<T = any> extends EventEmitter {
     static create<T = any>(peer: PeerJS): Promise<Peer<T>>;
     getId(): string;
     connect(id: string): Promise<PeerJS.DataConnection>;
-    getPeer(id: string): Option<PeerJS.DataConnection>;
+    getPeer(id: string): DataConnection | undefined;
     getPeerIds(): string[];
     getPeers(): PeerJS.DataConnection[];
     send(to: string, payload: T): this;
