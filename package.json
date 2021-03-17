@@ -43,7 +43,7 @@
     "eslint-plugin-prettier": "3",
     "husky": "4",
     "nyc": "15",
-    "parcel": "^2.0.0-nightly.614",
+    "parcel": "latest",
     "peerjs": "1",
     "prettier": "2",
     "tap-nyc": "1",
@@ -59,8 +59,8 @@
     "@aicacia/json": "0"
   },
   "peerDependencies": {
-    "tslib": "2",
-    "peerjs": "1"
+    "peerjs": "1",
+    "tslib": "2"
   },
   "nyc": {
     "include": [
