@@ -1,10 +1,8 @@
-export declare enum MessageType {
-    Peers = 0,
-    Data = 1
-}
-export interface IMessage<T = any> {
-    type: MessageType;
+export interface IMessage<T = string, P = any> {
+    type: T;
     from: string;
-    payload: T;
+    payload: P;
+    room?: string;
 }
-export declare function isMessage(value: any): value is IMessage;
+export declare function createMessage<M extends IMessage = IMessage>(from: string, type: M["type"], payload: M["payload"], room?: string): M;
+export declare function isMessage<M extends IMessage = IMessage>(value: any): value is M;

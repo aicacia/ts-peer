@@ -51,10 +51,12 @@
     "tape": "5",
     "ts-node": "9",
     "tslib": "2",
-    "typedoc": "^0.20.29",
+    "typedoc": "0",
     "typescript": "4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@aicacia/core": "0"
+  },
   "peerDependencies": {
     "peerjs": "1",
     "tslib": "2"

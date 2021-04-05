@@ -1,5 +1,7 @@
 import PeerJS from "peerjs";
-import { Peer } from "../src";
+import { IMessage, Peer, Room } from "../src";
+import { AutoReconnectingPeerEvent } from "../src/AutoReconnectingPeer";
+import { createMessage } from "../src/Message";
 
 const APP_ID = "example-peers-aicacia-com-";
 
@@ -12,12 +14,14 @@ function getPeerIdFromAppPeerId(appPeerId: string) {
 }
 
 async function main() {
-  let peer: Peer<string> | undefined;
+  let peer: Peer | undefined;
+  let room: Room | undefined;
 
-  const peerId = document.getElementById("peer-id") as Element,
+  const peerId = document.getElementById("peer-id") as HTMLHeadingElement,
     peerDiv = document.getElementById("peer") as HTMLDivElement,
     peerInput = document.getElementById("peer-input") as HTMLInputElement,
     peerBtn = document.getElementById("peer-btn") as HTMLButtonElement,
+    roomId = document.getElementById("room-id") as HTMLHeadingElement,
     join = document.getElementById("join") as HTMLDivElement,
     joinInput = document.getElementById("join-input") as HTMLInputElement,
     joinBtn = document.getElementById("join-btn") as HTMLButtonElement,
@@ -29,49 +33,64 @@ async function main() {
 
   peerBtn.addEventListener("click", async () => {
     peer = await Peer.create(new PeerJS(getAppPeerId(peerInput.value)));
-
-    peer.on("connection", (peerId) => {
-      const id = `peer-${peerId}`;
-      if (!document.getElementById(id)) {
-        const li = document.createElement("li");
-        li.id = id;
-        li.textContent = getPeerIdFromAppPeerId(peerId);
-        peers.appendChild(li);
-      }
-      message.style.display = "";
-    });
-    peer.on("disconnection", (id) =>
-      document.getElementById(`peer-${id}`)?.remove()
-    );
-    peer.on("message", addMessage);
+    (window as any).peer = peer;
 
     peerDiv.style.display = "none";
     message.style.display = "none";
     join.style.display = "";
 
-    peerId.textContent = getPeerIdFromAppPeerId(peer.getId());
+    peerId.textContent = `Peer Id: ${getPeerIdFromAppPeerId(peer.getId())}`;
   });
 
   joinBtn.addEventListener("click", async () => {
     if (peer) {
-      await peer.connect(getAppPeerId(joinInput.value));
+      room = await peer.connectToRoom(getAppPeerId(joinInput.value));
+      roomId.textContent = `Room Id: ${getPeerIdFromAppPeerId(
+        room.getRoomId()
+      )}`;
+      (window as any).room = room;
+
+      room.on(AutoReconnectingPeerEvent.Connection, (peerId) => {
+        const id = `peer-${peerId}`;
+        if (!document.getElementById(id)) {
+          const li = document.createElement("li");
+          li.id = id;
+          li.textContent = getPeerIdFromAppPeerId(peerId);
+          peers.appendChild(li);
+        }
+        message.style.display = "";
+      });
+      room.on(AutoReconnectingPeerEvent.Disconnection, (id) =>
+        document.getElementById(`peer-${id}`)?.remove()
+      );
+      room.on(AutoReconnectingPeerEvent.Message, addMessage);
+
       message.style.display = "";
-      joinInput.value = "";
+      join.style.display = "none";
     }
   });
 
   messageBtn.addEventListener("click", () => {
     const payload = messageInput.value;
 
-    if (payload) {
-      addMessage(payload, peer.getId());
-      peer.broadcast(payload);
+    if (room && payload) {
+      addMessage(
+        createMessage(
+          room.getPeer().getId(),
+          "message",
+          payload,
+          room.getRoomId()
+        )
+      );
+      room.broadcast("message", payload);
     }
   });
 
-  function addMessage(message: string, from: string) {
+  function addMessage(message: IMessage<string, any>) {
     const li = document.createElement("li");
-    li.textContent = `${getPeerIdFromAppPeerId(from)}: ${message}`;
+    li.textContent = `${getPeerIdFromAppPeerId(message.from)}: ${
+      message.payload
+    }`;
     messages.appendChild(li);
   }
 }
