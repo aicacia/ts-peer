@@ -1,7 +1,6 @@
 import PeerJS from "peerjs";
 import { IMessage, Peer, Room } from "../src";
 import { AutoReconnectingPeerEvent } from "../src/AutoReconnectingPeer";
-import { createMessage } from "../src/Message";
 
 const APP_ID = "example-peers-aicacia-com-";
 
@@ -63,7 +62,7 @@ async function main() {
       room.on(AutoReconnectingPeerEvent.Disconnection, (id) =>
         document.getElementById(`peer-${id}`)?.remove()
       );
-      room.on(AutoReconnectingPeerEvent.Message, addMessage);
+      room.on(AutoReconnectingPeerEvent.Message, onMessage);
 
       message.style.display = "";
       join.style.display = "none";
@@ -74,23 +73,18 @@ async function main() {
     const payload = messageInput.value;
 
     if (room && payload) {
-      addMessage(
-        createMessage(
-          room.getPeer().getId(),
-          "message",
-          payload,
-          room.getRoomId()
-        )
-      );
+      addMessage(room.getPeer().getId(), payload);
       room.broadcast("message", payload);
     }
   });
 
-  function addMessage(message: IMessage<string, any>) {
+  function onMessage(message: IMessage<string, any>) {
+    addMessage(message.from, message.payload);
+  }
+
+  function addMessage(from: string, message: string) {
     const li = document.createElement("li");
-    li.textContent = `${getPeerIdFromAppPeerId(message.from)}: ${
-      message.payload
-    }`;
+    li.textContent = `${getPeerIdFromAppPeerId(from)}: ${message}`;
     messages.appendChild(li);
   }
 }

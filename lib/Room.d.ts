@@ -49,7 +49,7 @@ export declare class Room<M extends IMessage = IMessage> extends EventEmitter {
     private onInvalidMessage;
     getRoomId(): string;
     getPeer(): AutoReconnectingPeer<M>;
-    close(): this;
+    close: () => this;
     sendMessage(to: string, message: M): this;
     send(to: string, type: M["type"], payload: M["payload"]): this;
     broadcastMessage(message: M, exclude?: string[]): this;

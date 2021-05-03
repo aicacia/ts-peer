@@ -41,7 +41,7 @@ export declare class AutoReconnectingPeer<M extends IMessage> extends EventEmitt
     private onError;
     private onDataConnection;
     private onMessage;
-    static connectToPeerJS(peer: PeerJS): Promise<PeerJS>;
+    static connectToPeerJS(peer: PeerJS): PeerJS | Promise<PeerJS>;
     static create<M extends IMessage>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<AutoReconnectingPeer<M>>;
     getId(): string;
     getInternal(): PeerJS;
@@ -55,5 +55,5 @@ export declare class AutoReconnectingPeer<M extends IMessage> extends EventEmitt
     send(to: string, type: M["type"], payload: M["payload"]): this;
     broadcastMessage(message: M, exclude?: string[]): this;
     broadcast(type: M["type"], payload: M["payload"], exclude?: string[]): this;
-    close(): this;
+    close: () => this;
 }

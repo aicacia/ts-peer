@@ -3,6 +3,7 @@ import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 import { createMessage, IMessage, isMessage } from "./Message";
 import { Option } from "@aicacia/core";
+import { closeEventEmitter } from "./onClose";
 
 export enum AutoReconnectingPeerEvent {
   Open = "open",
@@ -109,6 +110,7 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     this.peer.on("error", this.onError);
     this.peer.on("connection", this.onDataConnection);
     this.emit(AutoReconnectingPeerEvent.Open);
+    closeEventEmitter.once("close", this.close);
   }
 
   private onError = (error: PeerError) => {
@@ -164,26 +166,27 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
   };
 
   static connectToPeerJS(peer: PeerJS) {
-    return new Promise<PeerJS>((resolve, reject) => {
-      const onOpen = () => {
-        peer.off("open", onOpen);
-        peer.off("error", onError);
-        resolve(peer);
-      };
-      const onError = (error: PeerError) => {
-        peer.off("error", onError);
-        reject(error);
-      };
-      if ((peer as any).open) {
-        resolve(peer);
-      } else {
+    if ((peer as any).open) {
+      return peer;
+    } else {
+      return new Promise<PeerJS>((resolve, reject) => {
+        const onOpen = () => {
+          peer.off("open", onOpen);
+          peer.off("error", onError);
+          resolve(peer);
+        };
+        const onError = (error: PeerError) => {
+          peer.off("error", onError);
+          reject(error);
+        };
+
         peer.on("open", onOpen);
         peer.on("error", onError);
         if (peer.destroyed || peer.disconnected) {
           peer.reconnect();
         }
-      }
-    });
+      });
+    }
   }
 
   static async create<M extends IMessage>(
@@ -273,10 +276,11 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     );
   }
 
-  close() {
+  close = () => {
+    closeEventEmitter.off("close", this.close);
     this.peers = {};
     this.peer.destroy();
     this.emit(AutoReconnectingPeerEvent.Close);
     return this;
-  }
+  };
 }

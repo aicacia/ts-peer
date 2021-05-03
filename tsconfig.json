@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "downlevelIteration": true,
     "esModuleInterop": true,
-    "lib": ["esnext"]
+    "lib": ["esnext", "DOM"]
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.*"]

@@ -7,6 +7,7 @@ import {
   AutoReconnectingPeer,
 } from "./AutoReconnectingPeer";
 import { createMessage, IMessage, isMessage } from "./Message";
+import { closeEventEmitter } from "./onClose";
 
 export enum InternalRoomMessageType {
   Peers = "peers",
@@ -125,6 +126,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
     super();
     this.peer = peer;
     this.roomId = roomId;
+    closeEventEmitter.once("close", this.close);
   }
 
   static async create<M extends IMessage>(
@@ -167,7 +169,8 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
     return this.peer;
   }
 
-  close() {
+  close = () => {
+    closeEventEmitter.off("close", this.close);
     this.server.take().ifSome((server) => {
       server.close();
     });
@@ -185,7 +188,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
     );
     this.emit(AutoReconnectingPeerEvent.Close);
     return this;
-  }
+  };
 
   sendMessage(to: string, message: M) {
     if (this.peers.has(to) && message.room === this.roomId) {
