@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 import { createMessage, IMessage, isMessage } from "./Message";

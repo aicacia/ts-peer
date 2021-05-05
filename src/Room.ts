@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import PeerJS, { DataConnection } from "peerjs";
 import { none, Option } from "@aicacia/core";
 import { PeerError } from "./PeerError";

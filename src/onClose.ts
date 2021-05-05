@@ -1,13 +1,6 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 
-// tslint:disable-next-line: interface-name
-interface CloseEventEmitter {
-  on(event: "close", listener: (this: CloseEventEmitter) => void): this;
-  once(event: "close", listener: (this: CloseEventEmitter) => void): this;
-  off(event: "close", listener: (this: CloseEventEmitter) => void): this;
-}
-
-class CloseEventEmitter extends EventEmitter {}
+class CloseEventEmitter extends EventEmitter<"close"> {}
 
 export const closeEventEmitter = new CloseEventEmitter();
 
