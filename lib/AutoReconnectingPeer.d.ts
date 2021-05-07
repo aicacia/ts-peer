@@ -2,7 +2,6 @@ import { EventEmitter } from "eventemitter3";
 import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 import { IMessage } from "./Message";
-import { Option } from "@aicacia/core";
 export declare enum AutoReconnectingPeerEvent {
     Open = "open",
     Close = "close",
@@ -47,7 +46,7 @@ export declare class AutoReconnectingPeer<M extends IMessage> extends EventEmitt
     getReconnectTimeoutMS(): number;
     connect(id: string): Promise<PeerJS.DataConnection>;
     disconnect(id: string): this;
-    getPeer(id: string): Option<DataConnection>;
+    getPeer(id: string): DataConnection | undefined;
     getPeerIds(): string[];
     getPeers(): PeerJS.DataConnection[];
     sendMessage(to: string, message: M): this;

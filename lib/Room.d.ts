@@ -1,6 +1,5 @@
 import { EventEmitter } from "eventemitter3";
 import { DataConnection } from "peerjs";
-import { Option } from "@aicacia/core";
 import { PeerError } from "./PeerError";
 import { AutoReconnectingPeerEvent, AutoReconnectingPeer } from "./AutoReconnectingPeer";
 import { IMessage } from "./Message";
@@ -38,8 +37,8 @@ export interface Room<M extends IMessage = IMessage> {
 export declare class Room<M extends IMessage = IMessage> extends EventEmitter {
     protected roomId: string;
     protected peer: AutoReconnectingPeer<M>;
-    protected server: Option<AutoReconnectingPeer<IRoomMessage>>;
-    protected client: Option<DataConnection>;
+    protected server: AutoReconnectingPeer<IRoomMessage> | undefined;
+    protected client: DataConnection | undefined;
     protected peers: Set<string>;
     constructor(peer: AutoReconnectingPeer<M>, roomId: string);
     static create<M extends IMessage>(peer: AutoReconnectingPeer<M>, roomId: string): Promise<Room<M>>;
