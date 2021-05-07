@@ -42,6 +42,7 @@ export declare class AutoReconnectingPeer<M extends IMessage> extends EventEmitt
     static connectToPeerJS(peer: PeerJS): PeerJS | Promise<PeerJS>;
     static create<M extends IMessage>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<AutoReconnectingPeer<M>>;
     getId(): string;
+    isOpen(): boolean;
     getInternal(): PeerJS;
     getReconnectTimeoutMS(): number;
     connect(id: string): Promise<PeerJS.DataConnection>;

@@ -201,6 +201,9 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
   getId() {
     return this.peer.id;
   }
+  isOpen() {
+    return !!(this.peer as any).open;
+  }
   getInternal() {
     return this.peer;
   }
