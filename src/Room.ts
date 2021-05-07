@@ -1,6 +1,5 @@
 import { EventEmitter } from "eventemitter3";
 import PeerJS, { DataConnection } from "peerjs";
-import { none, Option } from "@aicacia/core";
 import { PeerError } from "./PeerError";
 import {
   AutoReconnectingPeerEvent,
@@ -118,8 +117,8 @@ export interface Room<M extends IMessage = IMessage> {
 export class Room<M extends IMessage = IMessage> extends EventEmitter {
   protected roomId: string;
   protected peer: AutoReconnectingPeer<M>;
-  protected server: Option<AutoReconnectingPeer<IRoomMessage>> = none();
-  protected client: Option<DataConnection> = none();
+  protected server: AutoReconnectingPeer<IRoomMessage> | undefined;
+  protected client: DataConnection | undefined;
   protected peers: Set<string> = new Set();
 
   constructor(peer: AutoReconnectingPeer<M>, roomId: string) {
@@ -171,12 +170,11 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
 
   close = () => {
     closeEventEmitter.off("close", this.close);
-    this.server.take().ifSome((server) => {
-      server.close();
-    });
-    this.client.take().ifSome(() => {
+    this.server?.close();
+    if (this.client) {
       this.peer.disconnect(this.roomId);
-    });
+      this.client = undefined;
+    }
     this.peer.off(
       AutoReconnectingPeerEvent.Disconnection,
       this.onDisconnection
@@ -238,7 +236,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
   }
 
   private onJoinError = (error: PeerError) => {
-    this.client.clear();
+    this.client = undefined;
     switch (error.type) {
       case "network":
       case "server-error":
@@ -254,9 +252,10 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
   };
 
   private onJoinClose = () => {
-    this.client.take().ifSome(() => {
+    if (this.client) {
       this.serve();
-    });
+      this.client = undefined;
+    }
     return this;
   };
 
@@ -285,7 +284,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
       });
       client.on("error", this.onJoinError);
       client.on("close", this.onJoinClose);
-      this.client.replace(client);
+      this.client = client;
       this.emit(RoomEvent.StatusChange, "client");
     } catch (error) {
       this.onJoinError(error);
@@ -294,7 +293,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
   }
 
   private onServeError = (error: PeerError) => {
-    this.server.clear();
+    this.server = undefined;
     switch (error.type) {
       case "network":
       case "server-error":
@@ -349,7 +348,7 @@ export class Room<M extends IMessage = IMessage> extends EventEmitter {
         );
         await this.disconnect(id);
       });
-      this.server.replace(server);
+      this.server = server;
       this.emit(RoomEvent.StatusChange, "server");
     } catch (error) {
       this.onServeError(error);

@@ -1,5 +1,4 @@
 import PeerJS from "peerjs";
-import { Option } from "@aicacia/core";
 import {
   AutoReconnectingPeer,
   IAutoReconnectingPeerOptions,
@@ -24,15 +23,15 @@ export class Peer<
     );
   }
 
-  getRoom<M extends IMessage = IMessage>(roomId: string) {
-    return Option.from((this.rooms[roomId] as any) as Room<M>);
+  getRoom<M extends IMessage = IMessage>(roomId: string): Room<M> | undefined {
+    return this.rooms[roomId] as any;
   }
 
   async connectToRoom<M extends IMessage = IMessage>(roomId: string) {
     const room = this.getRoom<M>(roomId);
 
-    if (room.isSome()) {
-      return room.unwrap();
+    if (room) {
+      return room;
     } else {
       const room = await Room.create<M>(this as any, roomId);
       this.rooms[roomId] = room as any;
@@ -41,10 +40,11 @@ export class Peer<
   }
 
   disconnectFromRoom<M extends IMessage = IMessage>(roomId: string) {
-    this.getRoom<M>(roomId).ifSome((room) => {
+    const room = this.getRoom<M>(roomId);
+    if (room) {
       room.close();
       delete this.rooms[roomId];
-    });
+    }
     return this;
   }
 }

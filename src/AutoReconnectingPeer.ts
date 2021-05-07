@@ -2,7 +2,6 @@ import { EventEmitter } from "eventemitter3";
 import PeerJS, { DataConnection } from "peerjs";
 import { PeerError } from "./PeerError";
 import { createMessage, IMessage, isMessage } from "./Message";
-import { Option } from "@aicacia/core";
 import { closeEventEmitter } from "./onClose";
 
 export enum AutoReconnectingPeerEvent {
@@ -239,12 +238,12 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     }
   }
   disconnect(id: string) {
-    this.getPeer(id).ifSome((peer) => peer.close());
+    this.getPeer(id)?.close();
     return this;
   }
 
-  getPeer(id: string): Option<DataConnection> {
-    return Option.from(this.peers[id]);
+  getPeer(id: string): DataConnection | undefined {
+    return this.peers[id];
   }
   getPeerIds() {
     return Object.keys(this.peers);
@@ -254,7 +253,7 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
   }
 
   sendMessage(to: string, message: M) {
-    this.getPeer(to).ifSome((peer) => peer.send(message));
+    this.getPeer(to)?.send(message);
     return this;
   }
   send(to: string, type: M["type"], payload: M["payload"]) {
