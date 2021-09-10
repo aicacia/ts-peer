@@ -6,8 +6,9 @@
     "type": "git",
     "url": "https://gitlab.com/aicacia/libs/ts-peer.git"
   },
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "module": "esm/index.js",
+  "main": "cjs/index.js",
+  "types": "types/index.d.ts",
   "scripts": {
     "build": "tsc",
     "buildESM": "tsc -b tsconfig.esm.json",
