@@ -1,6 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 import type { DataConnection } from "peerjs";
-import PeerJS from "peerjs";
+import type PeerJS from "peerjs";
 import type { PeerError } from "./PeerError";
 import {
   AutoReconnectingPeerEvent,
@@ -293,7 +293,10 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
   private serve = async () => {
     if (!this.server) {
       try {
-        const peer = new PeerJS(
+        const PeerJSConstructor: typeof PeerJS = Object.getPrototypeOf(
+          this.peer.getInternal() as any
+        ).constructor;
+        const peer = new PeerJSConstructor(
           this.roomId,
           (this.peer.getInternal() as any).options
         );

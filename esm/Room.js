@@ -1,5 +1,4 @@
 import { EventEmitter } from "eventemitter3";
-import PeerJS from "peerjs";
 import { AutoReconnectingPeerEvent, AutoReconnectingPeer, } from "./AutoReconnectingPeer";
 import { createMessage, isMessageOfType } from "./Message";
 import { closeEventEmitter } from "./onClose";
@@ -172,7 +171,8 @@ export class Room extends EventEmitter {
     serve = async () => {
         if (!this.server) {
             try {
-                const peer = new PeerJS(this.roomId, this.peer.getInternal().options);
+                const PeerJSConstructor = Object.getPrototypeOf(this.peer.getInternal()).constructor;
+                const peer = new PeerJSConstructor(this.roomId, this.peer.getInternal().options);
                 const server = new AutoReconnectingPeer(peer, {
                     reconnectTimeoutMS: this.peer.getReconnectTimeoutMS(),
                 });

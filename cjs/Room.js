@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Room = exports.RoomEvent = exports.createRoomMessage = exports.ROOM_MESSAGE_TYPE = exports.InternalRoomMessageType = void 0;
 const tslib_1 = require("tslib");
 const eventemitter3_1 = require("eventemitter3");
-const peerjs_1 = tslib_1.__importDefault(require("peerjs"));
 const AutoReconnectingPeer_1 = require("./AutoReconnectingPeer");
 const Message_1 = require("./Message");
 const onClose_1 = require("./onClose");
@@ -114,7 +113,8 @@ class Room extends eventemitter3_1.EventEmitter {
         this.serve = () => tslib_1.__awaiter(this, void 0, void 0, function* () {
             if (!this.server) {
                 try {
-                    const peer = new peerjs_1.default(this.roomId, this.peer.getInternal().options);
+                    const PeerJSConstructor = Object.getPrototypeOf(this.peer.getInternal()).constructor;
+                    const peer = new PeerJSConstructor(this.roomId, this.peer.getInternal().options);
                     const server = new AutoReconnectingPeer_1.AutoReconnectingPeer(peer, {
                         reconnectTimeoutMS: this.peer.getReconnectTimeoutMS(),
                     });
