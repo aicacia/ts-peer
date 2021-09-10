@@ -1,7 +1,7 @@
 import { EventEmitter } from "eventemitter3";
-import PeerJS, { DataConnection } from "peerjs";
-import { PeerError } from "./PeerError";
-import { createMessage, IMessage, isMessage } from "./Message";
+import type PeerJS from "peerjs";
+import type { DataConnection } from "peerjs";
+import type { PeerError } from "./PeerError";
 import { closeEventEmitter } from "./onClose";
 
 export enum AutoReconnectingPeerEvent {
@@ -11,91 +11,43 @@ export enum AutoReconnectingPeerEvent {
   ConnectionError = "connection-error",
   Connection = "connection",
   Disconnection = "disconnection",
-  Message = "message",
-  InvalidMessage = "invalid-message",
+  Data = "data",
 }
 
-// tslint:disable-next-line: interface-name
-export interface AutoReconnectingPeer<M extends IMessage = IMessage> {
-  on(
-    event: AutoReconnectingPeerEvent.Open,
-    listener: (this: AutoReconnectingPeer<M>) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.Error,
-    listener: (this: AutoReconnectingPeer<M>, error: PeerError) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.ConnectionError,
-    listener: (
-      this: AutoReconnectingPeer<M>,
-      error: PeerError,
-      from: string
-    ) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.Connection,
-    listener: (this: AutoReconnectingPeer<M>, id: string) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.Disconnection,
-    listener: (this: AutoReconnectingPeer<M>, id: string) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.InvalidMessage,
-    listener: (
-      this: AutoReconnectingPeer<M>,
-      message: any,
-      from: string
-    ) => void
-  ): this;
-  on(
-    event: AutoReconnectingPeerEvent.Message,
-    listener: (this: AutoReconnectingPeer<M>, message: M) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.Open,
-    listener: (this: AutoReconnectingPeer<M>) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.Error,
-    listener: (this: AutoReconnectingPeer<M>, error: PeerError) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.ConnectionError,
-    listener: (
-      this: AutoReconnectingPeer<M>,
-      error: PeerError,
-      from: string
-    ) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.Connection,
-    listener: (this: AutoReconnectingPeer<M>, id: string) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.Disconnection,
-    listener: (this: AutoReconnectingPeer<M>, id: string) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.InvalidMessage,
-    listener: (
-      this: AutoReconnectingPeer<M>,
-      message: any,
-      from: string
-    ) => void
-  ): this;
-  off(
-    event: AutoReconnectingPeerEvent.Message,
-    listener: (this: AutoReconnectingPeer<M>, message: M) => void
-  ): this;
+export interface AutoReconnectingPeerEvents<D = any> {
+  [AutoReconnectingPeerEvent.Open]: (this: AutoReconnectingPeer<D>) => void;
+  [AutoReconnectingPeerEvent.Close]: (this: AutoReconnectingPeer<D>) => void;
+  [AutoReconnectingPeerEvent.Error]: (
+    this: AutoReconnectingPeer<D>,
+    error: PeerError
+  ) => void;
+  [AutoReconnectingPeerEvent.ConnectionError]: (
+    this: AutoReconnectingPeer<D>,
+    error: PeerError,
+    from: string
+  ) => void;
+  [AutoReconnectingPeerEvent.Connection]: (
+    this: AutoReconnectingPeer<D>,
+    id: string
+  ) => void;
+  [AutoReconnectingPeerEvent.Disconnection]: (
+    this: AutoReconnectingPeer<D>,
+    id: string
+  ) => void;
+  [AutoReconnectingPeerEvent.Data]: (
+    this: AutoReconnectingPeer<D>,
+    from: string,
+    message: D
+  ) => void;
 }
 
 export interface IAutoReconnectingPeerOptions {
   reconnectTimeoutMS?: number;
 }
 
-export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
+export class AutoReconnectingPeer<D = any> extends EventEmitter<
+  AutoReconnectingPeerEvents<D>
+> {
   protected peer: PeerJS;
   protected peers: Record<string, DataConnection> = {};
   protected reconnectTimeoutMS = 60_000;
@@ -103,11 +55,15 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
   constructor(peer: PeerJS, options: IAutoReconnectingPeerOptions = {}) {
     super();
     this.peer = peer;
-    if (options.reconnectTimeoutMS) {
+    if (
+      options &&
+      typeof options.reconnectTimeoutMS === "number" &&
+      options.reconnectTimeoutMS >= 0
+    ) {
       this.reconnectTimeoutMS = options.reconnectTimeoutMS;
     }
     this.peer.on("error", this.onError);
-    this.peer.on("connection", this.onDataConnection);
+    this.peer.on("connection", this.waitForDataConnection);
     this.emit(AutoReconnectingPeerEvent.Open);
     closeEventEmitter.once("close", this.close);
   }
@@ -116,16 +72,12 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     this.emit(AutoReconnectingPeerEvent.Error, error);
   };
 
-  private onDataConnection = (dataConnection: DataConnection) => {
+  private onDataConnection = async (dataConnection: DataConnection) => {
     const id = dataConnection.peer;
 
-    dataConnection.on("data", (data: any) => {
-      if (isMessage<M>(data)) {
-        this.onMessage(data);
-      } else {
-        this.emit(AutoReconnectingPeerEvent.InvalidMessage, data, id);
-      }
-    });
+    dataConnection.on("data", (message: any) =>
+      this.emit(AutoReconnectingPeerEvent.Data, id, message)
+    );
 
     const onClose = () => {
       delete this.peers[id];
@@ -146,7 +98,7 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
           let timeout = 1000;
           const reconnect = () => {
             this.connect(id).catch(() => {
-              if (timeout > this.reconnectTimeoutMS) {
+              if (timeout < this.reconnectTimeoutMS) {
                 timeout *= 2;
                 setTimeout(reconnect, timeout);
               }
@@ -160,42 +112,45 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     this.emit(AutoReconnectingPeerEvent.Connection, id);
   };
 
-  private onMessage = (message: M) => {
-    this.emit(AutoReconnectingPeerEvent.Message, message);
-  };
-
-  static connectToPeerJS(peer: PeerJS) {
-    if ((peer as any).open) {
-      return peer;
-    } else {
-      return new Promise<PeerJS>((resolve, reject) => {
+  static waitForPeer(peer: PeerJS) {
+    return new Promise<PeerJS>((resolve, reject) => {
+      if ((peer as any).open) {
+        resolve(peer);
+      } else {
         const onOpen = () => {
           peer.off("open", onOpen);
           peer.off("error", onError);
           resolve(peer);
         };
         const onError = (error: PeerError) => {
+          peer.off("open", onOpen);
           peer.off("error", onError);
           reject(error);
         };
 
         peer.on("open", onOpen);
         peer.on("error", onError);
+
         if (peer.destroyed || peer.disconnected) {
           peer.reconnect();
         }
-      });
-    }
+      }
+    });
   }
 
-  static async create<M extends IMessage>(
+  static async create<D = any>(
     peer: PeerJS,
     options: IAutoReconnectingPeerOptions = {}
   ) {
-    return new AutoReconnectingPeer<M>(
-      await AutoReconnectingPeer.connectToPeerJS(peer),
+    return new AutoReconnectingPeer<D>(
+      await AutoReconnectingPeer.waitForPeer(peer),
       options
     );
+  }
+
+  async open() {
+    await AutoReconnectingPeer.waitForPeer(this.peer);
+    return this;
   }
 
   getId() {
@@ -211,15 +166,12 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     return this.reconnectTimeoutMS;
   }
 
-  connect(id: string) {
-    const dataConnection = this.peers[id];
-
-    if (dataConnection) {
-      return Promise.resolve(dataConnection);
-    } else {
-      const dataConnection = this.peer.connect(id);
-
-      return new Promise<DataConnection>((resolve, reject) => {
+  waitForDataConnection = async (dataConnection: DataConnection) =>
+    new Promise<DataConnection>((resolve, reject) => {
+      if (dataConnection.open) {
+        this.onDataConnection(dataConnection);
+        resolve(dataConnection);
+      } else {
         const onOpen = () => {
           dataConnection.off("open", onOpen);
           dataConnection.off("error", onError);
@@ -227,24 +179,34 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
           resolve(dataConnection);
         };
         const onError = (error: Error) => {
+          dataConnection.off("open", onOpen);
           dataConnection.off("error", onError);
           reject(error);
         };
-        if (dataConnection.open) {
-          this.onDataConnection(dataConnection);
-          resolve(dataConnection);
-        } else {
-          dataConnection.on("open", onOpen);
-          dataConnection.on("error", onError);
-        }
-      });
+        dataConnection.on("open", onOpen);
+        dataConnection.on("error", onError);
+      }
+    });
+
+  connect(id: string) {
+    const dataConnection = this.getPeer(id);
+
+    if (dataConnection) {
+      return Promise.resolve(dataConnection);
+    } else {
+      return this.waitForDataConnection(this.peer.connect(id));
     }
   }
   disconnect(id: string) {
     this.getPeer(id)?.close();
+    delete this.peers[id];
     return this;
   }
 
+  isConnected(id: string) {
+    const dataConnections = this.peer.connections[id];
+    return dataConnections && dataConnections.length > 0;
+  }
   getPeer(id: string): DataConnection | undefined {
     return this.peers[id];
   }
@@ -255,27 +217,18 @@ export class AutoReconnectingPeer<M extends IMessage> extends EventEmitter {
     return Object.values(this.peers);
   }
 
-  sendMessage(to: string, message: M) {
-    this.getPeer(to)?.send(message);
+  send(to: string, data: D) {
+    this.getPeer(to)?.send(data);
     return this;
-  }
-  send(to: string, type: M["type"], payload: M["payload"]) {
-    return this.sendMessage(to, createMessage(this.getId(), type, payload));
   }
 
-  broadcastMessage(message: M, exclude: string[] = []) {
-    for (const dataConnection of this.getPeers()) {
-      if (exclude.indexOf(dataConnection.peer) === -1) {
-        dataConnection.send(message);
-      }
+  broadcast(message: D, exclude: string[] = []) {
+    for (const dataConnection of this.getPeers().filter(
+      (dataConnection) => !exclude.includes(dataConnection.peer)
+    )) {
+      dataConnection.send(message);
     }
     return this;
-  }
-  broadcast(type: M["type"], payload: M["payload"], exclude: string[] = []) {
-    return this.broadcastMessage(
-      createMessage(this.getId(), type, payload),
-      exclude
-    );
   }
 
   close = () => {

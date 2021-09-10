@@ -2,20 +2,17 @@ export interface IMessage<T = string, P = any> {
   type: T;
   from: string;
   payload: P;
-  room?: string;
 }
 
 export function createMessage<M extends IMessage = IMessage>(
   from: string,
   type: M["type"],
-  payload: M["payload"],
-  room?: string
+  payload: M["payload"]
 ): M {
   return {
     type,
     payload,
     from,
-    room,
   } as M;
 }
 
@@ -23,4 +20,18 @@ export function isMessage<M extends IMessage = IMessage>(
   value: any
 ): value is M {
   return value !== null && typeof value === "object" && "type" in value;
+}
+
+export function isMessageOfType<M extends IMessage = IMessage>(
+  value: any,
+  type: M["type"]
+): value is M {
+  return isMessage(value) && value.type === type;
+}
+
+export function isMessageOfTypes<M extends IMessage = IMessage>(
+  value: any,
+  types: M["type"][]
+): value is M {
+  return isMessage(value) && types.includes(value.type);
 }

@@ -11,22 +11,28 @@ class Peer extends AutoReconnectingPeer_1.AutoReconnectingPeer {
     }
     static create(peer, options = {}) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            return new Peer(yield AutoReconnectingPeer_1.AutoReconnectingPeer.connectToPeerJS(peer), options);
+            return new Peer(yield AutoReconnectingPeer_1.AutoReconnectingPeer.waitForPeer(peer), options);
         });
     }
     getRoom(roomId) {
-        return this.rooms[roomId];
+        const room = this.rooms[roomId];
+        if (room) {
+            return room;
+        }
+        else {
+            const room = new Room_1.Room(this, roomId);
+            this.rooms[roomId] = room;
+            return room;
+        }
     }
     connectToRoom(roomId) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const room = this.getRoom(roomId);
-            if (room) {
+            if (room.isOpen()) {
                 return room;
             }
             else {
-                const room = yield Room_1.Room.create(this, roomId);
-                this.rooms[roomId] = room;
-                return room;
+                return room.connect();
             }
         });
     }

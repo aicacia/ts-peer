@@ -1,5 +1,5 @@
 import PeerJS from "peerjs";
-import { IMessage, Peer, Room } from "../src";
+import { Peer, RoomEvent } from "../src";
 import { AutoReconnectingPeerEvent } from "../src/AutoReconnectingPeer";
 
 const APP_ID = "example-peers-aicacia-com-";
@@ -13,73 +13,62 @@ function getPeerIdFromAppPeerId(appPeerId: string) {
 }
 
 async function main() {
-  let peer: Peer | undefined;
-  let room: Room | undefined;
-
   const peerId = document.getElementById("peer-id") as HTMLHeadingElement,
-    peerDiv = document.getElementById("peer") as HTMLDivElement,
-    peerInput = document.getElementById("peer-input") as HTMLInputElement,
-    peerBtn = document.getElementById("peer-btn") as HTMLButtonElement,
     roomId = document.getElementById("room-id") as HTMLHeadingElement,
-    join = document.getElementById("join") as HTMLDivElement,
-    joinInput = document.getElementById("join-input") as HTMLInputElement,
-    joinBtn = document.getElementById("join-btn") as HTMLButtonElement,
+    roomStatus = document.getElementById("room-status") as HTMLHeadingElement,
     peers = document.getElementById("peers") as HTMLUListElement,
     messages = document.getElementById("messages") as HTMLUListElement,
     message = document.getElementById("message") as HTMLDivElement,
     messageInput = document.getElementById("message-input") as HTMLInputElement,
     messageBtn = document.getElementById("message-btn") as HTMLButtonElement;
 
-  peerBtn.addEventListener("click", async () => {
-    peer = await Peer.create(new PeerJS(getAppPeerId(peerInput.value)));
-    (window as any).peer = peer;
+  const peer = await Peer.create(
+    new PeerJS(getAppPeerId(Math.random().toString(36).slice(2)), {
+      host: "localhost",
+      port: 8080,
+    })
+  );
+  (window as any).peer = peer;
 
-    peerDiv.style.display = "none";
-    message.style.display = "none";
-    join.style.display = "";
+  peerId.textContent = `Peer Id: ${getPeerIdFromAppPeerId(peer.getId())}`;
 
-    peerId.textContent = `Peer Id: ${getPeerIdFromAppPeerId(peer.getId())}`;
+  const room = peer.getRoom(getAppPeerId("room"));
+  roomId.textContent = `Room Id: ${getPeerIdFromAppPeerId(room.getRoomId())}`;
+  (window as any).room = room;
+
+  room.on(AutoReconnectingPeerEvent.Disconnection, (peerId) => {
+    document.getElementById(`peer-${peerId}`)?.remove();
   });
-
-  joinBtn.addEventListener("click", async () => {
-    if (peer) {
-      room = await peer.connectToRoom(getAppPeerId(joinInput.value));
-      roomId.textContent = `Room Id: ${getPeerIdFromAppPeerId(
-        room.getRoomId()
-      )}`;
-      (window as any).room = room;
-
-      room.on(AutoReconnectingPeerEvent.Connection, (peerId) => {
-        const id = `peer-${peerId}`;
-        if (!document.getElementById(id)) {
-          const li = document.createElement("li");
-          li.id = id;
-          li.textContent = getPeerIdFromAppPeerId(peerId);
-          peers.appendChild(li);
-        }
-        message.style.display = "";
-      });
-      room.on(AutoReconnectingPeerEvent.Disconnection, (id) =>
-        document.getElementById(`peer-${id}`)?.remove()
-      );
-      room.on(AutoReconnectingPeerEvent.Message, onMessage);
-
-      message.style.display = "";
-      join.style.display = "none";
+  room.on(AutoReconnectingPeerEvent.Connection, (peerId) => {
+    const id = `peer-${peerId}`;
+    if (!document.getElementById(id)) {
+      const li = document.createElement("li");
+      li.id = id;
+      li.textContent = getPeerIdFromAppPeerId(peerId);
+      peers.appendChild(li);
     }
+    message.style.display = "";
   });
+  room.on(AutoReconnectingPeerEvent.Data, onData);
+  room.on(RoomEvent.StatusChange, onStatusChange);
+
+  await room.connect();
 
   messageBtn.addEventListener("click", () => {
     const payload = messageInput.value;
 
     if (room && payload) {
-      addMessage(room.getPeer().getId(), payload);
-      room.broadcast("message", payload);
+      room.send(payload);
+      messageInput.value = "";
     }
   });
 
-  function onMessage(message: IMessage<string, any>) {
-    addMessage(message.from, message.payload);
+  function onStatusChange(status: "server" | "client") {
+    roomStatus.textContent = status;
+  }
+
+  function onData(from: string, payload: string) {
+    addMessage(from, payload);
   }
 
   function addMessage(from: string, message: string) {
