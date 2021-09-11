@@ -11,6 +11,3 @@ export function isMessage(value) {
 export function isMessageOfType(value, type) {
     return isMessage(value) && value.type === type;
 }
-export function isMessageOfTypes(value, types) {
-    return isMessage(value) && types.includes(value.type);
-}

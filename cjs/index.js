@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createRoomMessage = exports.ROOM_MESSAGE_TYPE = exports.InternalRoomMessageType = exports.RoomEvent = exports.Room = exports.Peer = exports.createMessage = exports.isMessage = exports.AutoReconnectingPeerEvent = exports.AutoReconnectingPeer = void 0;
+exports.createRoomMessage = exports.ROOM_MESSAGE_TYPE = exports.InternalRoomMessageType = exports.RoomEvent = exports.Room = exports.Peer = exports.createMessage = exports.isMessageOfType = exports.isMessage = exports.AutoReconnectingPeerEvent = exports.AutoReconnectingPeer = void 0;
 var AutoReconnectingPeer_1 = require("./AutoReconnectingPeer");
 Object.defineProperty(exports, "AutoReconnectingPeer", { enumerable: true, get: function () { return AutoReconnectingPeer_1.AutoReconnectingPeer; } });
 Object.defineProperty(exports, "AutoReconnectingPeerEvent", { enumerable: true, get: function () { return AutoReconnectingPeer_1.AutoReconnectingPeerEvent; } });
 var Message_1 = require("./Message");
 Object.defineProperty(exports, "isMessage", { enumerable: true, get: function () { return Message_1.isMessage; } });
+Object.defineProperty(exports, "isMessageOfType", { enumerable: true, get: function () { return Message_1.isMessageOfType; } });
 Object.defineProperty(exports, "createMessage", { enumerable: true, get: function () { return Message_1.createMessage; } });
 var Peer_1 = require("./Peer");
 Object.defineProperty(exports, "Peer", { enumerable: true, get: function () { return Peer_1.Peer; } });

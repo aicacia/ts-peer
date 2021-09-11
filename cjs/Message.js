@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isMessageOfTypes = exports.isMessageOfType = exports.isMessage = exports.createMessage = void 0;
+exports.isMessageOfType = exports.isMessage = exports.createMessage = void 0;
 function createMessage(from, type, payload) {
     return {
         type,
@@ -17,7 +17,3 @@ function isMessageOfType(value, type) {
     return isMessage(value) && value.type === type;
 }
 exports.isMessageOfType = isMessageOfType;
-function isMessageOfTypes(value, types) {
-    return isMessage(value) && types.includes(value.type);
-}
-exports.isMessageOfTypes = isMessageOfTypes;

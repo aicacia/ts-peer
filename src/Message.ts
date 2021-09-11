@@ -28,10 +28,3 @@ export function isMessageOfType<M extends IMessage = IMessage>(
 ): value is M {
   return isMessage(value) && value.type === type;
 }
-
-export function isMessageOfTypes<M extends IMessage = IMessage>(
-  value: any,
-  types: M["type"][]
-): value is M {
-  return isMessage(value) && types.includes(value.type);
-}
