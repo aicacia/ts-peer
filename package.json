@@ -20,7 +20,7 @@
     "clean": "rm -rf cjs esm browser",
     "lint": "eslint . --fix",
     "prettier": "prettier --ignore-path ./.eslintignore --ignore-unknown --write .",
-    "preCommit": "npm run prettier && npm run lint && npm run coverage",
+    "preCommit": "npm run prettier && npm run lint && npm run coverage && npm run prepublishOnly",
     "peerjs": "peerjs --port 8080 --key peerjs --path /",
     "example": "parcel serve example/index.html"
   },

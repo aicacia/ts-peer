@@ -1,18 +1,23 @@
 export {
   AutoReconnectingPeer,
-  IAutoReconnectingPeerOptions,
+  AutoReconnectingPeerEvent,
 } from "./AutoReconnectingPeer";
-export { IMessage, isMessage, createMessage } from "./Message";
-export { Peer, IPeerOption } from "./Peer";
+export type { IAutoReconnectingPeerOptions } from "./AutoReconnectingPeer";
+export type { IMessage } from "./Message";
+export { isMessage, createMessage } from "./Message";
+export type { IPeerOption } from "./Peer";
+export { Peer } from "./Peer";
 export { PeerError } from "./PeerError";
-export {
-  Room,
-  RoomEvent,
+export type {
   IInternalRoomMessage,
   IRoomMessage,
   IRoomPeerConnectMessage,
   IRoomPeerDisconnectMessage,
   IRoomPeersMessage,
+} from "./Room";
+export {
+  Room,
+  RoomEvent,
   InternalRoomMessageType,
   ROOM_MESSAGE_TYPE,
   createRoomMessage,
