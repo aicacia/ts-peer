@@ -3,10 +3,10 @@ import { AutoReconnectingPeer, IAutoReconnectingPeerOptions } from "./AutoReconn
 import type { IMessage } from "./Message";
 import { Room } from "./Room";
 export declare type IPeerOption = IAutoReconnectingPeerOptions;
-export declare class Peer<D = any> extends AutoReconnectingPeer<D> {
+export declare class Peer<M extends IMessage = IMessage> extends AutoReconnectingPeer<M> {
     protected rooms: Record<string, Room>;
-    static create<D = any>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<Peer<D>>;
-    getRoom<D = any>(roomId: string): Room<D>;
-    connectToRoom<D = any>(roomId: string): Promise<Room<D>>;
-    disconnectFromRoom<D extends IMessage = IMessage>(roomId: string): this;
+    static create<M extends IMessage = IMessage>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<Peer<M>>;
+    getRoom<M extends IMessage = IMessage>(roomId: string): Room<M>;
+    connectToRoom<M extends IMessage = IMessage>(roomId: string): Promise<Room<M>>;
+    disconnectFromRoom<M extends IMessage = IMessage>(roomId: string): this;
 }

@@ -10,51 +10,53 @@ import { createMessage, IMessage, isMessageOfType } from "./Message";
 import { closeEventEmitter } from "./onClose";
 
 export enum InternalRoomMessageType {
-  Data = "data",
+  Message = "message",
+  Boardcast = "boardcast",
   Peers = "peers",
   PeerConnect = "peer-connect",
   PeerDisconnect = "peer-disconnect",
 }
 
-export type IRoomDataMessage<D = any> = IMessage<
-  InternalRoomMessageType.Data,
-  D
->;
-export type IRoomPeersMessage = IMessage<
+export type IInternalRoomMessageMessage<M extends IMessage = IMessage> =
+  IMessage<InternalRoomMessageType.Message, { to: string; message: M }>;
+export type IInternalRoomMessageBoardcast<M extends IMessage = IMessage> =
+  IMessage<InternalRoomMessageType.Boardcast, M>;
+export type IInternalRoomMessagePeers = IMessage<
   InternalRoomMessageType.Peers,
   string[]
 >;
-export type IRoomPeerConnectMessage = IMessage<
+export type IInternalRoomMessageConnection = IMessage<
   InternalRoomMessageType.PeerConnect,
   string
 >;
-export type IRoomPeerDisconnectMessage = IMessage<
+export type IInternalRoomMessageDisconnect = IMessage<
   InternalRoomMessageType.PeerDisconnect,
   string
 >;
 
-export type IInternalRoomMessage<D = any> =
-  | IRoomDataMessage<D>
-  | IRoomPeersMessage
-  | IRoomPeerConnectMessage
-  | IRoomPeerDisconnectMessage;
+export type IInternalRoomMessage<M extends IMessage = IMessage> =
+  | IInternalRoomMessageMessage<M>
+  | IInternalRoomMessageBoardcast<M>
+  | IInternalRoomMessagePeers
+  | IInternalRoomMessageConnection
+  | IInternalRoomMessageDisconnect;
 
 export const ROOM_MESSAGE_TYPE = "internal-room-message";
-export type IRoomMessage<D = any> = IMessage<
+export type IRoomMessage<M extends IMessage = IMessage> = IMessage<
   typeof ROOM_MESSAGE_TYPE,
-  IInternalRoomMessage<D>
+  IInternalRoomMessage<M>
 >;
 
-export function createRoomMessage<D>(
+export function createRoomMessage<M extends IMessage = IMessage>(
   from: string,
   roomId: string,
-  type: IInternalRoomMessage["type"],
-  payload: IInternalRoomMessage["payload"]
+  type: IInternalRoomMessage<M>["type"],
+  payload: IInternalRoomMessage<M>["payload"]
 ) {
-  return createMessage<IRoomMessage<D>>(
+  return createMessage<IRoomMessage<M>>(
     roomId,
     ROOM_MESSAGE_TYPE,
-    createMessage(from, type, payload)
+    createMessage<IInternalRoomMessage<M>>(from, type, payload)
   );
 }
 
@@ -67,28 +69,31 @@ export interface IRoomOptions {
   syncMS?: number;
 }
 
-export interface RoomEvents<D = any> {
+export interface RoomEvents<M extends IMessage = IMessage> {
   [RoomEvent.StatusChange]: (
-    this: Room<D>,
+    this: Room<M>,
     status: "server" | "client"
   ) => void;
-  [AutoReconnectingPeerEvent.Close]: (this: Room<D>) => void;
-  [AutoReconnectingPeerEvent.Error]: (this: Room<D>, error: PeerError) => void;
-  [AutoReconnectingPeerEvent.Connection]: (this: Room<D>, id: string) => void;
+  [AutoReconnectingPeerEvent.Open]: (this: Room<M>) => void;
+  [AutoReconnectingPeerEvent.Close]: (this: Room<M>) => void;
+  [AutoReconnectingPeerEvent.Error]: (this: Room<M>, error: PeerError) => void;
+  [AutoReconnectingPeerEvent.Connection]: (this: Room<M>, id: string) => void;
   [AutoReconnectingPeerEvent.Disconnection]: (
-    this: Room<D>,
+    this: Room<M>,
     id: string
   ) => void;
-  [AutoReconnectingPeerEvent.Data]: (
-    this: Room<D>,
+  [AutoReconnectingPeerEvent.Message]: (
+    this: Room<M>,
     from: string,
-    message: D
+    message: M
   ) => void;
 }
 
-export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
+export class Room<M extends IMessage = IMessage> extends EventEmitter<
+  RoomEvents<M>
+> {
   protected roomId: string;
-  protected peer: AutoReconnectingPeer<D>;
+  protected peer: AutoReconnectingPeer<M>;
   protected server: AutoReconnectingPeer<IRoomMessage> | undefined;
   protected client: DataConnection | undefined;
   protected peers: Record<string, number> = {};
@@ -97,14 +102,14 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
   protected closed = false;
 
   constructor(
-    peer: AutoReconnectingPeer<D>,
+    peer: AutoReconnectingPeer<M>,
     roomId: string,
     options: IRoomOptions = {}
   ) {
     super();
     this.roomId = roomId;
     this.peer = peer;
-    this.peer.on(AutoReconnectingPeerEvent.Data, this.onPeerData);
+    this.peer.on(AutoReconnectingPeerEvent.Message, this.onPeerData);
     if (options) {
       if (
         typeof options.reconnectTimeoutMS === "number" &&
@@ -122,9 +127,17 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
   isOpen() {
     return this.peer.getPeer(this.roomId)?.open;
   }
+  isServer() {
+    return !!this.server;
+  }
+  isClient() {
+    return !this.isServer();
+  }
 
   async connect() {
-    this.closed = false;
+    if (this.closed) {
+      this.closed = false;
+    }
     return this.serve();
   }
 
@@ -140,7 +153,7 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
     closeEventEmitter.off("close", this.close);
     this.onServeClose();
     this.onJoinClose();
-    this.peer.off(AutoReconnectingPeerEvent.Data, this.onPeerData);
+    this.peer.off(AutoReconnectingPeerEvent.Message, this.onPeerData);
     this.emit(AutoReconnectingPeerEvent.Close);
     return this;
   };
@@ -149,40 +162,68 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
     return Object.keys(this.peers);
   }
 
-  send(message: D) {
+  send(to: string, type: M["type"], payload: M["payload"]) {
     this.client?.send(
       createRoomMessage(
         this.peer.getId(),
         this.roomId,
-        InternalRoomMessageType.Data,
-        message
+        InternalRoomMessageType.Message,
+        { to, message: { from: this.peer.getId(), type, payload } }
+      )
+    );
+    return this;
+  }
+  broadcast(type: M["type"], payload: M["payload"]) {
+    this.client?.send(
+      createRoomMessage(
+        this.peer.getId(),
+        this.roomId,
+        InternalRoomMessageType.Boardcast,
+        { from: this.peer.getId(), type, payload }
       )
     );
     return this;
   }
 
-  private onPeerData = async (from: string, message: IRoomMessage | D) => {
-    if (isMessageOfType<IRoomMessage>(message, ROOM_MESSAGE_TYPE)) {
+  private onPeerData = (_from: string, message: IRoomMessage | M) => {
+    if (isMessageOfType<IRoomMessage<M>>(message, ROOM_MESSAGE_TYPE)) {
       const roomMessage = message.payload;
 
       if (
-        isMessageOfType<IRoomDataMessage>(
+        isMessageOfType<IInternalRoomMessageMessage>(
           roomMessage,
-          InternalRoomMessageType.Data
+          InternalRoomMessageType.Message
+        ) &&
+        roomMessage.payload.to === this.peer.getId()
+      ) {
+        this.peer.emit(
+          AutoReconnectingPeerEvent.Message,
+          roomMessage.from,
+          roomMessage.payload.message
+        );
+        this.emit(
+          AutoReconnectingPeerEvent.Message,
+          roomMessage.from,
+          roomMessage.payload.message
+        );
+      } else if (
+        isMessageOfType<IInternalRoomMessageBoardcast>(
+          roomMessage,
+          InternalRoomMessageType.Boardcast
         )
       ) {
         this.peer.emit(
-          AutoReconnectingPeerEvent.Data,
+          AutoReconnectingPeerEvent.Message,
           roomMessage.from,
           roomMessage.payload
         );
         this.emit(
-          AutoReconnectingPeerEvent.Data,
+          AutoReconnectingPeerEvent.Message,
           roomMessage.from,
           roomMessage.payload
         );
       } else if (
-        isMessageOfType<IRoomPeersMessage>(
+        isMessageOfType<IInternalRoomMessagePeers>(
           roomMessage,
           InternalRoomMessageType.Peers
         )
@@ -191,14 +232,14 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
           this.internalConnect(peerId);
         }
       } else if (
-        isMessageOfType<IRoomPeerConnectMessage>(
+        isMessageOfType<IInternalRoomMessageConnection>(
           roomMessage,
           InternalRoomMessageType.PeerConnect
         )
       ) {
         this.internalConnect(roomMessage.payload);
       } else if (
-        isMessageOfType<IRoomPeerDisconnectMessage>(
+        isMessageOfType<IInternalRoomMessageDisconnect>(
           roomMessage,
           InternalRoomMessageType.PeerDisconnect
         )
@@ -256,6 +297,7 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
         this.client = client;
         if (emit) {
           this.emit(RoomEvent.StatusChange, "client");
+          this.emit(AutoReconnectingPeerEvent.Open);
         }
       } catch (error) {
         this.onJoinError(error as PeerError);
@@ -300,14 +342,14 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
           this.roomId,
           (this.peer.getInternal() as any).options
         );
-        const server = new AutoReconnectingPeer<IRoomMessage>(peer, {
+        const server = new AutoReconnectingPeer<IRoomMessage<M>>(peer, {
           reconnectTimeoutMS: this.peer.getReconnectTimeoutMS(),
         });
         server.on(AutoReconnectingPeerEvent.Connection, async (peerId) => {
           this.internalConnect(peerId);
           server.send(
             peerId,
-            createRoomMessage(
+            createRoomMessage<M>(
               this.peer.getId(),
               this.roomId,
               InternalRoomMessageType.Peers,
@@ -315,7 +357,7 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
             )
           );
           server.broadcast(
-            createRoomMessage(
+            createRoomMessage<M>(
               this.peer.getId(),
               this.roomId,
               InternalRoomMessageType.PeerConnect,
@@ -326,7 +368,7 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
         });
         server.on(AutoReconnectingPeerEvent.Disconnection, (peerId) => {
           server.broadcast(
-            createRoomMessage(
+            createRoomMessage<M>(
               this.peer.getId(),
               this.roomId,
               InternalRoomMessageType.PeerDisconnect,
@@ -335,13 +377,21 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
           );
           this.internalDisconnect(peerId);
         });
-        server.on(AutoReconnectingPeerEvent.Data, (from, message) => {
+        server.on(AutoReconnectingPeerEvent.Message, (_from, message) => {
           if (isMessageOfType<IRoomMessage>(message, ROOM_MESSAGE_TYPE)) {
             const roomMessage = message.payload;
+
             if (
-              isMessageOfType<IRoomDataMessage>(
+              isMessageOfType<IInternalRoomMessageMessage>(
                 roomMessage,
-                InternalRoomMessageType.Data
+                InternalRoomMessageType.Message
+              )
+            ) {
+              server.send(roomMessage.payload.to, message);
+            } else if (
+              isMessageOfType<IInternalRoomMessageBoardcast>(
+                roomMessage,
+                InternalRoomMessageType.Boardcast
               )
             ) {
               server.broadcast(message);
@@ -353,6 +403,7 @@ export class Room<D = any> extends EventEmitter<RoomEvents<D>> {
         this.server = server;
         await this.join(false);
         this.emit(RoomEvent.StatusChange, "server");
+        this.emit(AutoReconnectingPeerEvent.Open);
       } catch (error) {
         this.onServeError(error as PeerError);
       }

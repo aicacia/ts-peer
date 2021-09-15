@@ -1,5 +1,5 @@
 import PeerJS from "peerjs";
-import { Peer, RoomEvent } from "../src";
+import { Peer, RoomEvent, State } from "../src";
 import { AutoReconnectingPeerEvent } from "../src/AutoReconnectingPeer";
 
 const APP_ID = "example-peers-aicacia-com-";
@@ -10,6 +10,12 @@ function getAppPeerId(id: string) {
 
 function getPeerIdFromAppPeerId(appPeerId: string) {
   return appPeerId.slice(APP_ID.length);
+}
+
+interface IMessage {
+  date: string;
+  from: string;
+  message: string;
 }
 
 async function main() {
@@ -49,32 +55,49 @@ async function main() {
     }
     message.style.display = "";
   });
-  room.on(AutoReconnectingPeerEvent.Data, onData);
   room.on(RoomEvent.StatusChange, onStatusChange);
 
   await room.connect();
 
-  messageBtn.addEventListener("click", () => {
+  const state = new State<{ messages: IMessage[] }>(room, { messages: [] });
+
+  function onMessage() {
     const payload = messageInput.value;
 
-    if (room && payload) {
-      room.send(payload);
+    if (state && payload) {
+      state.change((state) => {
+        state.messages.push({
+          date: new Date().toJSON(),
+          from: room.getPeer().getId(),
+          message: payload,
+        });
+      });
       messageInput.value = "";
     }
+  }
+  messageInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      onMessage();
+    }
   });
+  messageBtn.addEventListener("click", onMessage);
 
   function onStatusChange(status: "server" | "client") {
     roomStatus.textContent = status;
   }
 
-  function onData(from: string, payload: string) {
-    addMessage(from, payload);
-  }
+  state.on("update", (state) => {
+    state.messages.forEach(addMessage);
+  });
 
-  function addMessage(from: string, message: string) {
-    const li = document.createElement("li");
-    li.textContent = `${getPeerIdFromAppPeerId(from)}: ${message}`;
-    messages.appendChild(li);
+  function addMessage({ date, from, message }: IMessage) {
+    const id = `${from}-${date}`;
+    if (!messages.getElementsByClassName(id).length) {
+      const li = document.createElement("li");
+      li.classList.add(id);
+      li.textContent = `${getPeerIdFromAppPeerId(from)}: ${message}`;
+      messages.appendChild(li);
+    }
   }
 }
 

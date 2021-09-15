@@ -9,11 +9,13 @@ export type { IPeerOption } from "./Peer";
 export { Peer } from "./Peer";
 export { PeerError } from "./PeerError";
 export type {
-  IInternalRoomMessage,
   IRoomMessage,
-  IRoomPeerConnectMessage,
-  IRoomPeerDisconnectMessage,
-  IRoomPeersMessage,
+  IInternalRoomMessage,
+  IInternalRoomMessagePeers,
+  IInternalRoomMessageConnection,
+  IInternalRoomMessageMessage,
+  IInternalRoomMessageBoardcast,
+  IInternalRoomMessageDisconnect,
 } from "./Room";
 export {
   Room,
@@ -22,3 +24,10 @@ export {
   ROOM_MESSAGE_TYPE,
   createRoomMessage,
 } from "./Room";
+export type {
+  IStateMessageInit,
+  IStateMessageUpdate,
+  IStateMessage,
+  IStateMessageGet,
+} from "./State";
+export { StateEvents, StateType, State } from "./State";

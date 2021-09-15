@@ -1,0 +1,116 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.State = exports.StateType = void 0;
+const tslib_1 = require("tslib");
+const eventemitter3_1 = require("eventemitter3");
+const Message_1 = require("./Message");
+const AutoReconnectingPeer_1 = require("./AutoReconnectingPeer");
+const automerge_1 = tslib_1.__importDefault(require("automerge"));
+var StateType;
+(function (StateType) {
+    StateType["Init"] = "init";
+    StateType["Get"] = "get";
+    StateType["Changes"] = "changes";
+})(StateType = exports.StateType || (exports.StateType = {}));
+class State extends eventemitter3_1.EventEmitter {
+    constructor(room, initialState) {
+        super();
+        this.opened = false;
+        this.initted = false;
+        this.changeFns = [];
+        this.changes = [];
+        this.onOpen = () => {
+            if (!this.opened) {
+                this.opened = true;
+                this.initted = false;
+                this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, this.onData);
+                this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Close, this.onClose);
+                if (this.room.isServer()) {
+                    this.room.broadcast(StateType.Init, toJSON(automerge_1.default.save(this.state)));
+                }
+                else {
+                    this.room.broadcast(StateType.Get, undefined);
+                }
+            }
+        };
+        this.onClose = () => {
+            if (this.opened) {
+                this.opened = false;
+                this.room.off(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, this.onData);
+                this.room.off(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Close, this.onClose);
+            }
+        };
+        this.onData = (from, data) => {
+            if (Message_1.isMessageOfType(data, StateType.Changes)) {
+                if (this.initted) {
+                    const [state] = automerge_1.default.applyChanges(this.state, this.changes.concat(data.payload.map(toBinaryChange)));
+                    this.changes.length = 0;
+                    this.state = state;
+                    this.emit("update", state);
+                }
+                else {
+                    this.changes.push(...data.payload.map(toBinaryChange));
+                }
+            }
+            else if (Message_1.isMessageOfType(data, StateType.Init)) {
+                const initialState = automerge_1.default.load(toBinaryDocument(data.payload));
+                let state = initialState;
+                if (this.changeFns.length) {
+                    state = [...this.changeFns].reduce(automerge_1.default.change, state);
+                    this.changeFns.length = 0;
+                }
+                this.initted = true;
+                this.state = state;
+                this.emit("update", state);
+                const changes = automerge_1.default.getChanges(initialState, state).map(toJSON);
+                if (changes.length) {
+                    this.room.broadcast(StateType.Changes, changes);
+                }
+            }
+            else if (this.room.isServer() &&
+                from !== this.room.getPeer().getId() &&
+                Message_1.isMessageOfType(data, StateType.Get)) {
+                this.room.send(from, StateType.Init, toJSON(automerge_1.default.save(this.state)));
+            }
+        };
+        this.room = room;
+        this.state = automerge_1.default.from(initialState);
+        if (room.isOpen()) {
+            this.onOpen();
+        }
+        else {
+            this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open, this.onOpen);
+        }
+    }
+    change(changeFn) {
+        if (this.initted) {
+            const initialState = this.state, state = automerge_1.default.change(initialState, changeFn), changes = automerge_1.default.getChanges(initialState, state).map(toJSON);
+            this.state = state;
+            if (changes.length) {
+                this.room.broadcast(StateType.Changes, changes);
+            }
+        }
+        else {
+            this.changeFns.push(changeFn);
+        }
+        return this;
+    }
+}
+exports.State = State;
+function toJSON(binary) {
+    const array = new Array(binary.length);
+    for (let i = 0, il = binary.length; i < il; i++) {
+        array[i] = binary[i];
+    }
+    return array;
+}
+function toBinaryChange(array) {
+    const binarChange = new Uint8Array(array);
+    binarChange.__binaryChange = true;
+    return binarChange;
+}
+function toBinaryDocument(array) {
+    const binaryDocument = new Uint8Array(array);
+    binaryDocument.__binaryDocument = true;
+    return binaryDocument;
+}

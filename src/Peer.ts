@@ -8,30 +8,32 @@ import { Room } from "./Room";
 
 export type IPeerOption = IAutoReconnectingPeerOptions;
 
-export class Peer<D = any> extends AutoReconnectingPeer<D> {
+export class Peer<
+  M extends IMessage = IMessage
+> extends AutoReconnectingPeer<M> {
   protected rooms: Record<string, Room> = {};
 
-  static async create<D = any>(
+  static async create<M extends IMessage = IMessage>(
     peer: PeerJS,
     options: IAutoReconnectingPeerOptions = {}
   ) {
-    return new Peer<D>(await AutoReconnectingPeer.waitForPeer(peer), options);
+    return new Peer<M>(await AutoReconnectingPeer.waitForPeer(peer), options);
   }
 
-  getRoom<D = any>(roomId: string) {
-    const room: Room<D> = this.rooms[roomId] as any;
+  getRoom<M extends IMessage = IMessage>(roomId: string) {
+    const room: Room<M> = this.rooms[roomId] as any;
 
     if (room) {
       return room;
     } else {
-      const room = new Room<D>(this as any, roomId);
+      const room = new Room<M>(this as any, roomId);
       this.rooms[roomId] = room as any;
       return room;
     }
   }
 
-  async connectToRoom<D = any>(roomId: string) {
-    const room = this.getRoom<D>(roomId);
+  async connectToRoom<M extends IMessage = IMessage>(roomId: string) {
+    const room = this.getRoom<M>(roomId);
 
     if (room.isOpen()) {
       return room;
@@ -40,8 +42,8 @@ export class Peer<D = any> extends AutoReconnectingPeer<D> {
     }
   }
 
-  disconnectFromRoom<D extends IMessage = IMessage>(roomId: string) {
-    const room = this.getRoom<D>(roomId);
+  disconnectFromRoom<M extends IMessage = IMessage>(roomId: string) {
+    const room = this.getRoom<M>(roomId);
     if (room) {
       room.close();
       delete this.rooms[roomId];

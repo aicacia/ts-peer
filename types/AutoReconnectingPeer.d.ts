@@ -2,6 +2,7 @@ import { EventEmitter } from "eventemitter3";
 import type PeerJS from "peerjs";
 import type { DataConnection } from "peerjs";
 import type { PeerError } from "./PeerError";
+import type { IMessage } from "./Message";
 export declare enum AutoReconnectingPeerEvent {
     Open = "open",
     Close = "close",
@@ -9,21 +10,21 @@ export declare enum AutoReconnectingPeerEvent {
     ConnectionError = "connection-error",
     Connection = "connection",
     Disconnection = "disconnection",
-    Data = "data"
+    Message = "data"
 }
-export interface AutoReconnectingPeerEvents<D = any> {
-    [AutoReconnectingPeerEvent.Open]: (this: AutoReconnectingPeer<D>) => void;
-    [AutoReconnectingPeerEvent.Close]: (this: AutoReconnectingPeer<D>) => void;
-    [AutoReconnectingPeerEvent.Error]: (this: AutoReconnectingPeer<D>, error: PeerError) => void;
-    [AutoReconnectingPeerEvent.ConnectionError]: (this: AutoReconnectingPeer<D>, error: PeerError, from: string) => void;
-    [AutoReconnectingPeerEvent.Connection]: (this: AutoReconnectingPeer<D>, id: string) => void;
-    [AutoReconnectingPeerEvent.Disconnection]: (this: AutoReconnectingPeer<D>, id: string) => void;
-    [AutoReconnectingPeerEvent.Data]: (this: AutoReconnectingPeer<D>, from: string, message: D) => void;
+export interface AutoReconnectingPeerEvents<M extends IMessage = IMessage> {
+    [AutoReconnectingPeerEvent.Open]: (this: AutoReconnectingPeer<M>) => void;
+    [AutoReconnectingPeerEvent.Close]: (this: AutoReconnectingPeer<M>) => void;
+    [AutoReconnectingPeerEvent.Error]: (this: AutoReconnectingPeer<M>, error: PeerError) => void;
+    [AutoReconnectingPeerEvent.ConnectionError]: (this: AutoReconnectingPeer<M>, error: PeerError, from: string) => void;
+    [AutoReconnectingPeerEvent.Connection]: (this: AutoReconnectingPeer<M>, id: string) => void;
+    [AutoReconnectingPeerEvent.Disconnection]: (this: AutoReconnectingPeer<M>, id: string) => void;
+    [AutoReconnectingPeerEvent.Message]: (this: AutoReconnectingPeer<M>, from: string, message: M) => void;
 }
 export interface IAutoReconnectingPeerOptions {
     reconnectTimeoutMS?: number;
 }
-export declare class AutoReconnectingPeer<D = any> extends EventEmitter<AutoReconnectingPeerEvents<D>> {
+export declare class AutoReconnectingPeer<M extends IMessage = IMessage> extends EventEmitter<AutoReconnectingPeerEvents<M>> {
     protected peer: PeerJS;
     protected peers: Record<string, DataConnection>;
     protected reconnectTimeoutMS: number;
@@ -31,7 +32,7 @@ export declare class AutoReconnectingPeer<D = any> extends EventEmitter<AutoReco
     private onError;
     private onDataConnection;
     static waitForPeer(peer: PeerJS): Promise<PeerJS>;
-    static create<D = any>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<AutoReconnectingPeer<D>>;
+    static create<M extends IMessage = IMessage>(peer: PeerJS, options?: IAutoReconnectingPeerOptions): Promise<AutoReconnectingPeer<M>>;
     open(): Promise<this>;
     getId(): string;
     isOpen(): boolean;
@@ -44,7 +45,7 @@ export declare class AutoReconnectingPeer<D = any> extends EventEmitter<AutoReco
     getPeer(id: string): DataConnection | undefined;
     getPeerIds(): string[];
     getPeers(): PeerJS.DataConnection[];
-    send(to: string, data: D): this;
-    broadcast(message: D, exclude?: string[]): this;
+    send(to: string, data: M): this;
+    broadcast(message: M, exclude?: string[]): this;
     close: () => this;
 }

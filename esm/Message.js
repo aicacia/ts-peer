@@ -1,8 +1,8 @@
 export function createMessage(from, type, payload) {
     return {
+        from,
         type,
         payload,
-        from,
     };
 }
 export function isMessage(value) {

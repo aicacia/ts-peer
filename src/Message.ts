@@ -1,6 +1,6 @@
 export interface IMessage<T = string, P = any> {
-  type: T;
   from: string;
+  type: T;
   payload: P;
 }
 
@@ -8,11 +8,11 @@ export function createMessage<M extends IMessage = IMessage>(
   from: string,
   type: M["type"],
   payload: M["payload"]
-): M {
+) {
   return {
+    from,
     type,
     payload,
-    from,
   } as M;
 }
 

@@ -12,7 +12,7 @@ var AutoReconnectingPeerEvent;
     AutoReconnectingPeerEvent["ConnectionError"] = "connection-error";
     AutoReconnectingPeerEvent["Connection"] = "connection";
     AutoReconnectingPeerEvent["Disconnection"] = "disconnection";
-    AutoReconnectingPeerEvent["Data"] = "data";
+    AutoReconnectingPeerEvent["Message"] = "data";
 })(AutoReconnectingPeerEvent = exports.AutoReconnectingPeerEvent || (exports.AutoReconnectingPeerEvent = {}));
 class AutoReconnectingPeer extends eventemitter3_1.EventEmitter {
     constructor(peer, options = {}) {
@@ -24,7 +24,7 @@ class AutoReconnectingPeer extends eventemitter3_1.EventEmitter {
         };
         this.onDataConnection = (dataConnection) => tslib_1.__awaiter(this, void 0, void 0, function* () {
             const id = dataConnection.peer;
-            dataConnection.on("data", (message) => this.emit(AutoReconnectingPeerEvent.Data, id, message));
+            dataConnection.on("data", (message) => this.emit(AutoReconnectingPeerEvent.Message, id, message));
             const onClose = () => {
                 delete this.peers[id];
                 this.emit(AutoReconnectingPeerEvent.Disconnection, id);

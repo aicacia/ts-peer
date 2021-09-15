@@ -65,6 +65,7 @@
     "typescript": "4.3"
   },
   "dependencies": {
+    "automerge": "1.0.1-preview.4",
     "eventemitter3": "4"
   },
   "peerDependencies": {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createRoomMessage = exports.ROOM_MESSAGE_TYPE = exports.InternalRoomMessageType = exports.RoomEvent = exports.Room = exports.Peer = exports.createMessage = exports.isMessageOfType = exports.isMessage = exports.AutoReconnectingPeerEvent = exports.AutoReconnectingPeer = void 0;
+exports.State = exports.StateType = exports.createRoomMessage = exports.ROOM_MESSAGE_TYPE = exports.InternalRoomMessageType = exports.RoomEvent = exports.Room = exports.Peer = exports.createMessage = exports.isMessageOfType = exports.isMessage = exports.AutoReconnectingPeerEvent = exports.AutoReconnectingPeer = void 0;
 var AutoReconnectingPeer_1 = require("./AutoReconnectingPeer");
 Object.defineProperty(exports, "AutoReconnectingPeer", { enumerable: true, get: function () { return AutoReconnectingPeer_1.AutoReconnectingPeer; } });
 Object.defineProperty(exports, "AutoReconnectingPeerEvent", { enumerable: true, get: function () { return AutoReconnectingPeer_1.AutoReconnectingPeerEvent; } });
@@ -16,3 +16,6 @@ Object.defineProperty(exports, "RoomEvent", { enumerable: true, get: function ()
 Object.defineProperty(exports, "InternalRoomMessageType", { enumerable: true, get: function () { return Room_1.InternalRoomMessageType; } });
 Object.defineProperty(exports, "ROOM_MESSAGE_TYPE", { enumerable: true, get: function () { return Room_1.ROOM_MESSAGE_TYPE; } });
 Object.defineProperty(exports, "createRoomMessage", { enumerable: true, get: function () { return Room_1.createRoomMessage; } });
+var State_1 = require("./State");
+Object.defineProperty(exports, "StateType", { enumerable: true, get: function () { return State_1.StateType; } });
+Object.defineProperty(exports, "State", { enumerable: true, get: function () { return State_1.State; } });

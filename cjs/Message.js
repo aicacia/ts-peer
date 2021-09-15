@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isMessageOfType = exports.isMessage = exports.createMessage = void 0;
 function createMessage(from, type, payload) {
     return {
+        from,
         type,
         payload,
-        from,
     };
 }
 exports.createMessage = createMessage;

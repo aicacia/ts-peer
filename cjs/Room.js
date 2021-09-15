@@ -8,7 +8,8 @@ const Message_1 = require("./Message");
 const onClose_1 = require("./onClose");
 var InternalRoomMessageType;
 (function (InternalRoomMessageType) {
-    InternalRoomMessageType["Data"] = "data";
+    InternalRoomMessageType["Message"] = "message";
+    InternalRoomMessageType["Boardcast"] = "boardcast";
     InternalRoomMessageType["Peers"] = "peers";
     InternalRoomMessageType["PeerConnect"] = "peer-connect";
     InternalRoomMessageType["PeerDisconnect"] = "peer-disconnect";
@@ -34,16 +35,21 @@ class Room extends eventemitter3_1.EventEmitter {
             onClose_1.closeEventEmitter.off("close", this.close);
             this.onServeClose();
             this.onJoinClose();
-            this.peer.off(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Data, this.onPeerData);
+            this.peer.off(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, this.onPeerData);
             this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Close);
             return this;
         };
-        this.onPeerData = (from, message) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        this.onPeerData = (_from, message) => {
             if (Message_1.isMessageOfType(message, exports.ROOM_MESSAGE_TYPE)) {
                 const roomMessage = message.payload;
-                if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Data)) {
-                    this.peer.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Data, roomMessage.from, roomMessage.payload);
-                    this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Data, roomMessage.from, roomMessage.payload);
+                if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Message) &&
+                    roomMessage.payload.to === this.peer.getId()) {
+                    this.peer.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, roomMessage.from, roomMessage.payload.message);
+                    this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, roomMessage.from, roomMessage.payload.message);
+                }
+                else if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Boardcast)) {
+                    this.peer.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, roomMessage.from, roomMessage.payload);
+                    this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, roomMessage.from, roomMessage.payload);
                 }
                 else if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Peers)) {
                     for (const peerId of roomMessage.payload) {
@@ -57,7 +63,7 @@ class Room extends eventemitter3_1.EventEmitter {
                     this.internalDisconnect(roomMessage.payload);
                 }
             }
-        });
+        };
         this.onJoinError = (error) => {
             this.onJoinClose();
             switch (error.type) {
@@ -127,10 +133,13 @@ class Room extends eventemitter3_1.EventEmitter {
                         server.broadcast(createRoomMessage(this.peer.getId(), this.roomId, InternalRoomMessageType.PeerDisconnect, peerId));
                         this.internalDisconnect(peerId);
                     });
-                    server.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Data, (from, message) => {
+                    server.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, (_from, message) => {
                         if (Message_1.isMessageOfType(message, exports.ROOM_MESSAGE_TYPE)) {
                             const roomMessage = message.payload;
-                            if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Data)) {
+                            if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Message)) {
+                                server.send(roomMessage.payload.to, message);
+                            }
+                            else if (Message_1.isMessageOfType(roomMessage, InternalRoomMessageType.Boardcast)) {
                                 server.broadcast(message);
                             }
                         }
@@ -140,6 +149,7 @@ class Room extends eventemitter3_1.EventEmitter {
                     this.server = server;
                     yield this.join(false);
                     this.emit(RoomEvent.StatusChange, "server");
+                    this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open);
                 }
                 catch (error) {
                     this.onServeError(error);
@@ -149,7 +159,7 @@ class Room extends eventemitter3_1.EventEmitter {
         });
         this.roomId = roomId;
         this.peer = peer;
-        this.peer.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Data, this.onPeerData);
+        this.peer.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Message, this.onPeerData);
         if (options) {
             if (typeof options.reconnectTimeoutMS === "number" &&
                 options.reconnectTimeoutMS >= 0) {
@@ -165,9 +175,17 @@ class Room extends eventemitter3_1.EventEmitter {
         var _a;
         return (_a = this.peer.getPeer(this.roomId)) === null || _a === void 0 ? void 0 : _a.open;
     }
+    isServer() {
+        return !!this.server;
+    }
+    isClient() {
+        return !this.isServer();
+    }
     connect() {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            this.closed = false;
+            if (this.closed) {
+                this.closed = false;
+            }
             return this.serve();
         });
     }
@@ -180,9 +198,14 @@ class Room extends eventemitter3_1.EventEmitter {
     getPeers() {
         return Object.keys(this.peers);
     }
-    send(message) {
+    send(to, type, payload) {
         var _a;
-        (_a = this.client) === null || _a === void 0 ? void 0 : _a.send(createRoomMessage(this.peer.getId(), this.roomId, InternalRoomMessageType.Data, message));
+        (_a = this.client) === null || _a === void 0 ? void 0 : _a.send(createRoomMessage(this.peer.getId(), this.roomId, InternalRoomMessageType.Message, { to, message: { from: this.peer.getId(), type, payload } }));
+        return this;
+    }
+    broadcast(type, payload) {
+        var _a;
+        (_a = this.client) === null || _a === void 0 ? void 0 : _a.send(createRoomMessage(this.peer.getId(), this.roomId, InternalRoomMessageType.Boardcast, { from: this.peer.getId(), type, payload }));
         return this;
     }
     internalConnect(peerId) {
@@ -204,6 +227,7 @@ class Room extends eventemitter3_1.EventEmitter {
                     this.client = client;
                     if (emit) {
                         this.emit(RoomEvent.StatusChange, "client");
+                        this.emit(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open);
                     }
                 }
                 catch (error) {

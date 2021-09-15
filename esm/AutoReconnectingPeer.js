@@ -8,7 +8,7 @@ export var AutoReconnectingPeerEvent;
     AutoReconnectingPeerEvent["ConnectionError"] = "connection-error";
     AutoReconnectingPeerEvent["Connection"] = "connection";
     AutoReconnectingPeerEvent["Disconnection"] = "disconnection";
-    AutoReconnectingPeerEvent["Data"] = "data";
+    AutoReconnectingPeerEvent["Message"] = "data";
 })(AutoReconnectingPeerEvent || (AutoReconnectingPeerEvent = {}));
 export class AutoReconnectingPeer extends EventEmitter {
     peer;
@@ -32,7 +32,7 @@ export class AutoReconnectingPeer extends EventEmitter {
     };
     onDataConnection = async (dataConnection) => {
         const id = dataConnection.peer;
-        dataConnection.on("data", (message) => this.emit(AutoReconnectingPeerEvent.Data, id, message));
+        dataConnection.on("data", (message) => this.emit(AutoReconnectingPeerEvent.Message, id, message));
         const onClose = () => {
             delete this.peers[id];
             this.emit(AutoReconnectingPeerEvent.Disconnection, id);
