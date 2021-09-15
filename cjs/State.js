@@ -82,6 +82,9 @@ class State extends eventemitter3_1.EventEmitter {
             this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open, this.onOpen);
         }
     }
+    get() {
+        return this.state;
+    }
     change(changeFn) {
         if (this.initted) {
             const initialState = this.state, state = automerge_1.default.change(initialState, changeFn), changes = automerge_1.default.getChanges(initialState, state).map(toJSON);

@@ -80,6 +80,9 @@ export class State extends EventEmitter {
             this.room.send(from, StateType.Init, toJSON(Automerge.save(this.state)));
         }
     };
+    get() {
+        return this.state;
+    }
     change(changeFn) {
         if (this.initted) {
             const initialState = this.state, state = Automerge.change(initialState, changeFn), changes = Automerge.getChanges(initialState, state).map(toJSON);

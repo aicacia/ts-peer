@@ -1,5 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 import type { IMessage } from "./Message";
+import Automerge from "automerge";
 import type { ChangeFn, FreezeObject } from "automerge";
 import type { Room } from "./Room";
 export declare type IStateMessageInit = IMessage<StateType.Init, number[]>;
@@ -25,5 +26,6 @@ export declare class State<T> extends EventEmitter<StateEvents<T>> {
     private onOpen;
     private onClose;
     private onData;
+    get(): Automerge.FreezeObject<T>;
     change(changeFn: ChangeFn<T>): this;
 }

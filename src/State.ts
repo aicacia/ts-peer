@@ -107,6 +107,10 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
     }
   };
 
+  get() {
+    return this.state;
+  }
+
   change(changeFn: ChangeFn<T>) {
     if (this.initted) {
       const initialState = this.state,
