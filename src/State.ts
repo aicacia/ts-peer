@@ -6,9 +6,15 @@ import Automerge, { BinaryChange, BinaryDocument } from "automerge";
 import type { ChangeFn, FreezeObject } from "automerge";
 import type { Room } from "./Room";
 
-export type IStateMessageInit = IMessage<StateType.Init, number[]>;
-export type IStateMessageGet = IMessage<StateType.Get, undefined>;
-export type IStateMessageUpdate = IMessage<StateType.Changes, number[][]>;
+export type IStateMessageInit = IMessage<
+  StateType.Init,
+  { name: string; raw: number[] }
+>;
+export type IStateMessageGet = IMessage<StateType.Get, { name: string }>;
+export type IStateMessageUpdate = IMessage<
+  StateType.Changes,
+  { name: string; changes: number[][] }
+>;
 export type IStateMessage =
   | IStateMessageInit
   | IStateMessageGet
@@ -25,6 +31,7 @@ export interface StateEvents<T> {
 }
 
 export class State<T> extends EventEmitter<StateEvents<T>> {
+  private name: string;
   private state: FreezeObject<T>;
   private room: Room;
   private opened = false;
@@ -32,8 +39,9 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
   private changeFns: ChangeFn<T>[] = [];
   private changes: BinaryChange[] = [];
 
-  constructor(room: Room, initialState: T) {
+  constructor(name: string, room: Room, initialState: T) {
     super();
+    this.name = name;
     this.room = room;
     this.state = Automerge.from(initialState);
 
@@ -52,9 +60,12 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
       this.room.on(AutoReconnectingPeerEvent.Close, this.onClose);
 
       if (this.room.isServer()) {
-        this.room.broadcast(StateType.Init, toJSON(Automerge.save(this.state)));
+        this.room.broadcast(StateType.Init, {
+          name: this.name,
+          raw: toJSON(Automerge.save(this.state)),
+        });
       } else {
-        this.room.broadcast(StateType.Get, undefined);
+        this.room.broadcast(StateType.Get, { name: this.name });
       }
     }
   };
@@ -68,20 +79,28 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
   };
 
   private onData = (from: string, data: unknown) => {
-    if (isMessageOfType<IStateMessageUpdate>(data, StateType.Changes)) {
+    if (
+      isMessageOfType<IStateMessageUpdate>(data, StateType.Changes) &&
+      data.payload.name === this.name
+    ) {
       if (this.initted) {
         const [state] = Automerge.applyChanges(
           this.state,
-          this.changes.concat(data.payload.map(toBinaryChange))
+          this.changes.concat(data.payload.changes.map(toBinaryChange))
         );
         this.changes.length = 0;
         this.state = state;
         this.emit("update", state);
       } else {
-        this.changes.push(...data.payload.map(toBinaryChange));
+        this.changes.push(...data.payload.changes.map(toBinaryChange));
       }
-    } else if (isMessageOfType<IStateMessageInit>(data, StateType.Init)) {
-      const initialState = Automerge.load<T>(toBinaryDocument(data.payload));
+    } else if (
+      isMessageOfType<IStateMessageInit>(data, StateType.Init) &&
+      data.payload.name === this.name
+    ) {
+      const initialState = Automerge.load<T>(
+        toBinaryDocument(data.payload.raw)
+      );
       let state = initialState;
       if (this.changeFns.length) {
         state = [...this.changeFns].reduce<FreezeObject<T>>(
@@ -96,14 +115,18 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
 
       const changes = Automerge.getChanges(initialState, state).map(toJSON);
       if (changes.length) {
-        this.room.broadcast(StateType.Changes, changes);
+        this.room.broadcast(StateType.Changes, { name: this.name, changes });
       }
     } else if (
       this.room.isServer() &&
       from !== this.room.getPeer().getId() &&
-      isMessageOfType<IStateMessageGet>(data, StateType.Get)
+      isMessageOfType<IStateMessageGet>(data, StateType.Get) &&
+      data.payload.name === this.name
     ) {
-      this.room.send(from, StateType.Init, toJSON(Automerge.save(this.state)));
+      this.room.send(from, StateType.Init, {
+        name: this.name,
+        raw: toJSON(Automerge.save(this.state)),
+      });
     }
   };
 
@@ -120,7 +143,7 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
       this.state = state;
 
       if (changes.length) {
-        this.room.broadcast(StateType.Changes, changes);
+        this.room.broadcast(StateType.Changes, { name: this.name, changes });
       }
     } else {
       this.changeFns.push(changeFn);

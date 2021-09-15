@@ -9,14 +9,16 @@ export var StateType;
     StateType["Changes"] = "changes";
 })(StateType || (StateType = {}));
 export class State extends EventEmitter {
+    name;
     state;
     room;
     opened = false;
     initted = false;
     changeFns = [];
     changes = [];
-    constructor(room, initialState) {
+    constructor(name, room, initialState) {
         super();
+        this.name = name;
         this.room = room;
         this.state = Automerge.from(initialState);
         if (room.isOpen()) {
@@ -33,10 +35,13 @@ export class State extends EventEmitter {
             this.room.on(AutoReconnectingPeerEvent.Message, this.onData);
             this.room.on(AutoReconnectingPeerEvent.Close, this.onClose);
             if (this.room.isServer()) {
-                this.room.broadcast(StateType.Init, toJSON(Automerge.save(this.state)));
+                this.room.broadcast(StateType.Init, {
+                    name: this.name,
+                    raw: toJSON(Automerge.save(this.state)),
+                });
             }
             else {
-                this.room.broadcast(StateType.Get, undefined);
+                this.room.broadcast(StateType.Get, { name: this.name });
             }
         }
     };
@@ -48,19 +53,21 @@ export class State extends EventEmitter {
         }
     };
     onData = (from, data) => {
-        if (isMessageOfType(data, StateType.Changes)) {
+        if (isMessageOfType(data, StateType.Changes) &&
+            data.payload.name === this.name) {
             if (this.initted) {
-                const [state] = Automerge.applyChanges(this.state, this.changes.concat(data.payload.map(toBinaryChange)));
+                const [state] = Automerge.applyChanges(this.state, this.changes.concat(data.payload.changes.map(toBinaryChange)));
                 this.changes.length = 0;
                 this.state = state;
                 this.emit("update", state);
             }
             else {
-                this.changes.push(...data.payload.map(toBinaryChange));
+                this.changes.push(...data.payload.changes.map(toBinaryChange));
             }
         }
-        else if (isMessageOfType(data, StateType.Init)) {
-            const initialState = Automerge.load(toBinaryDocument(data.payload));
+        else if (isMessageOfType(data, StateType.Init) &&
+            data.payload.name === this.name) {
+            const initialState = Automerge.load(toBinaryDocument(data.payload.raw));
             let state = initialState;
             if (this.changeFns.length) {
                 state = [...this.changeFns].reduce((state, changeFn) => Automerge.change(state, changeFn), state);
@@ -71,13 +78,17 @@ export class State extends EventEmitter {
             this.emit("update", state);
             const changes = Automerge.getChanges(initialState, state).map(toJSON);
             if (changes.length) {
-                this.room.broadcast(StateType.Changes, changes);
+                this.room.broadcast(StateType.Changes, { name: this.name, changes });
             }
         }
         else if (this.room.isServer() &&
             from !== this.room.getPeer().getId() &&
-            isMessageOfType(data, StateType.Get)) {
-            this.room.send(from, StateType.Init, toJSON(Automerge.save(this.state)));
+            isMessageOfType(data, StateType.Get) &&
+            data.payload.name === this.name) {
+            this.room.send(from, StateType.Init, {
+                name: this.name,
+                raw: toJSON(Automerge.save(this.state)),
+            });
         }
     };
     get() {
@@ -88,7 +99,7 @@ export class State extends EventEmitter {
             const initialState = this.state, state = Automerge.change(initialState, changeFn), changes = Automerge.getChanges(initialState, state).map(toJSON);
             this.state = state;
             if (changes.length) {
-                this.room.broadcast(StateType.Changes, changes);
+                this.room.broadcast(StateType.Changes, { name: this.name, changes });
             }
         }
         else {

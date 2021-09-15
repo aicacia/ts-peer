@@ -59,7 +59,9 @@ async function main() {
 
   await room.connect();
 
-  const state = new State<{ messages: IMessage[] }>(room, { messages: [] });
+  const state = new State<{ messages: IMessage[] }>("state", room, {
+    messages: [],
+  });
 
   function onMessage() {
     const payload = messageInput.value;
