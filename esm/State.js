@@ -63,7 +63,7 @@ export class State extends EventEmitter {
             const initialState = Automerge.load(toBinaryDocument(data.payload));
             let state = initialState;
             if (this.changeFns.length) {
-                state = [...this.changeFns].reduce(Automerge.change, state);
+                state = [...this.changeFns].reduce((state, changeFn) => Automerge.change(state, changeFn), state);
                 this.changeFns.length = 0;
             }
             this.initted = true;

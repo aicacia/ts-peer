@@ -85,7 +85,7 @@ export class State<T> extends EventEmitter<StateEvents<T>> {
       let state = initialState;
       if (this.changeFns.length) {
         state = [...this.changeFns].reduce<FreezeObject<T>>(
-          Automerge.change,
+          (state, changeFn) => Automerge.change(state, changeFn),
           state
         );
         this.changeFns.length = 0;
