@@ -10,7 +10,7 @@ export var StateType;
 })(StateType || (StateType = {}));
 export class State extends EventEmitter {
     name;
-    state;
+    state = undefined;
     room;
     opened = false;
     initted = false;
@@ -20,15 +20,15 @@ export class State extends EventEmitter {
         super();
         this.name = name;
         this.room = room;
-        this.state = Automerge.from(initialState);
         if (room.isOpen()) {
-            this.onOpen();
+            this.onOpen(initialState);
         }
         else {
-            this.room.on(AutoReconnectingPeerEvent.Open, this.onOpen);
+            this.room.on(AutoReconnectingPeerEvent.Open, () => this.onOpen(initialState));
         }
     }
-    onOpen = () => {
+    onOpen = async (initialState) => {
+        this.state = Automerge.from(await initialState);
         if (!this.opened) {
             this.opened = true;
             this.initted = false;

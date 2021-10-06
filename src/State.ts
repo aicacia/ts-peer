@@ -32,27 +32,30 @@ export interface StateEvents<T> {
 
 export class State<T> extends EventEmitter<StateEvents<T>> {
   private name: string;
-  private state: FreezeObject<T>;
+  private state: FreezeObject<T> = undefined as any;
   private room: Room;
   private opened = false;
   private initted = false;
   private changeFns: ChangeFn<T>[] = [];
   private changes: BinaryChange[] = [];
 
-  constructor(name: string, room: Room, initialState: T) {
+  constructor(name: string, room: Room, initialState: T | Promise<T>) {
     super();
     this.name = name;
     this.room = room;
-    this.state = Automerge.from(initialState);
 
     if (room.isOpen()) {
-      this.onOpen();
+      this.onOpen(initialState);
     } else {
-      this.room.on(AutoReconnectingPeerEvent.Open, this.onOpen);
+      this.room.on(AutoReconnectingPeerEvent.Open, () =>
+        this.onOpen(initialState)
+      );
     }
   }
 
-  private onOpen = () => {
+  private onOpen = async (initialState: T | Promise<T>) => {
+    this.state = Automerge.from(await initialState);
+
     if (!this.opened) {
       this.opened = true;
       this.initted = false;

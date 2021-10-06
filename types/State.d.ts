@@ -31,7 +31,7 @@ export declare class State<T> extends EventEmitter<StateEvents<T>> {
     private initted;
     private changeFns;
     private changes;
-    constructor(name: string, room: Room, initialState: T);
+    constructor(name: string, room: Room, initialState: T | Promise<T>);
     private onOpen;
     private onClose;
     private onData;

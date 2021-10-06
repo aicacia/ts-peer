@@ -38,7 +38,7 @@
   "license": "(MIT OR Apache-2.0)",
   "readmeFilename": "README.md",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "20",
+    "@rollup/plugin-commonjs": "21",
     "@rollup/plugin-node-resolve": "13",
     "@rollup/plugin-typescript": "8",
     "@types/peerjs": "1",

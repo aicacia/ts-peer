@@ -15,11 +15,13 @@ var StateType;
 class State extends eventemitter3_1.EventEmitter {
     constructor(name, room, initialState) {
         super();
+        this.state = undefined;
         this.opened = false;
         this.initted = false;
         this.changeFns = [];
         this.changes = [];
-        this.onOpen = () => {
+        this.onOpen = (initialState) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+            this.state = automerge_1.default.from(yield initialState);
             if (!this.opened) {
                 this.opened = true;
                 this.initted = false;
@@ -35,7 +37,7 @@ class State extends eventemitter3_1.EventEmitter {
                     this.room.broadcast(StateType.Get, { name: this.name });
                 }
             }
-        };
+        });
         this.onClose = () => {
             if (this.opened) {
                 this.opened = false;
@@ -84,12 +86,11 @@ class State extends eventemitter3_1.EventEmitter {
         };
         this.name = name;
         this.room = room;
-        this.state = automerge_1.default.from(initialState);
         if (room.isOpen()) {
-            this.onOpen();
+            this.onOpen(initialState);
         }
         else {
-            this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open, this.onOpen);
+            this.room.on(AutoReconnectingPeer_1.AutoReconnectingPeerEvent.Open, () => this.onOpen(initialState));
         }
     }
     get() {
