@@ -81,8 +81,7 @@ class Peer extends eventemitter3_1.EventEmitter {
     }
     init() {
         this.initiator = true;
-        this.createPeer();
-        return this.needsNegotiation();
+        return this.createPeer();
     }
     close() {
         return this.internalClose(true);
@@ -207,7 +206,6 @@ class Peer extends eventemitter3_1.EventEmitter {
         if (this.initiator) {
             const transceiver = this.connection.addTransceiver(kind, init);
             this.emit("transceiver", transceiver);
-            this.needsNegotiation();
             return transceiver;
         }
         this.internalSignal({
@@ -224,7 +222,6 @@ class Peer extends eventemitter3_1.EventEmitter {
             throw new Error("Connection not initialized");
         }
         const sender = this.connection.addTrack(track);
-        this.needsNegotiation();
         return sender;
     }
     removeTrack(sender) {
@@ -232,7 +229,6 @@ class Peer extends eventemitter3_1.EventEmitter {
             throw new Error("Connection not initialized");
         }
         this.connection.removeTrack(sender);
-        this.needsNegotiation();
         return this;
     }
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -300,6 +296,9 @@ class Peer extends eventemitter3_1.EventEmitter {
     createPeer() {
         this.internalClose(false);
         this.connection = new this.webrtc.RTCPeerConnection(this.config);
+        this.connection.addEventListener("negotiationneeded", this.onNegotiationNeeded.bind(this));
+        this.connection.addEventListener("iceconnectionstatechange", this.onICEConnectionStateChange.bind(this));
+        this.connection.addEventListener("icegatheringstatechange", this.onICEGatheringStateChange.bind(this));
         this.connection.addEventListener("connectionstatechange", this.onConnectionStateChange.bind(this));
         this.connection.addEventListener("icecandidate", this.onICECandidate.bind(this));
         this.connection.addEventListener("track", this.onTrackRemote.bind(this));
@@ -330,15 +329,69 @@ class Peer extends eventemitter3_1.EventEmitter {
         return this;
     }
     onConnectionStateChange() {
-        if (!this.connection)
+        if (!this.connection) {
             return;
+        }
         switch (this.connection.connectionState) {
             case "connected":
+                console.debug(`${this.id}: connected`);
                 break;
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
             case "failed":
+                console.debug(`${this.id}: failed`);
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
             case "disconnected":
+                console.debug(`${this.id}: disconnected`);
             case "closed":
+                console.debug(`${this.id}: closed`);
                 this.internalClose(true);
+                break;
+        }
+    }
+    onNegotiationNeeded() {
+        if (!this.connection) {
+            return;
+        }
+        return this.needsNegotiation();
+    }
+    onICEConnectionStateChange() {
+        if (!this.connection) {
+            return;
+        }
+        switch (this.connection.iceConnectionState) {
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
+            case "new":
+                console.debug(`${this.id}: new`);
+            case "checking":
+                console.debug(`${this.id}: checking`);
+                break;
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
+            case "connected":
+                console.debug(`${this.id}: connected`);
+            case "completed":
+                console.debug(`${this.id}: completed`);
+                break;
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
+            case "failed":
+                console.debug(`${this.id}: failed`);
+            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
+            case "disconnected":
+                console.debug(`${this.id}: disconnected`);
+            case "closed":
+                console.debug(`${this.id}: closed`);
+                this.internalClose(true);
+                break;
+        }
+    }
+    onICEGatheringStateChange() {
+        if (!this.connection) {
+            return;
+        }
+        switch (this.connection.iceGatheringState) {
+            case "new":
+            case "gathering":
+                break;
+            case "complete":
                 break;
         }
     }

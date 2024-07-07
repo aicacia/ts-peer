@@ -50,7 +50,7 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     isClosed(): boolean;
     ready(): Promise<void>;
     isInitiator(): boolean;
-    init(): Promise<this>;
+    init(): this;
     close(): this;
     send(chunk: string | Blob | ArrayBuffer | ArrayBufferView): this;
     write(chunk: string | Blob | ArrayBuffer | ArrayBufferView): void;
@@ -70,6 +70,9 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     private createPeer;
     private internalClose;
     private onConnectionStateChange;
+    private onNegotiationNeeded;
+    private onICEConnectionStateChange;
+    private onICEGatheringStateChange;
     private onICECandidate;
     private onTrackRemote;
     private onDataChannel;
