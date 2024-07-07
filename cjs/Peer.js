@@ -70,6 +70,12 @@ class Peer extends eventemitter3_1.EventEmitter {
     isClosed() {
         return !this.connection || this.connection.connectionState !== "connected";
     }
+    ready() {
+        if (this.isReady()) {
+            return Promise.resolve();
+        }
+        return this.waitOnce("connect");
+    }
     isInitiator() {
         return this.initiator;
     }
@@ -180,11 +186,16 @@ class Peer extends eventemitter3_1.EventEmitter {
     waitOnce(event) {
         return new Promise((resolve) => {
             this.once(event, (...args) => {
-                if (args.length === 1) {
-                    resolve(args[0]);
-                }
-                else {
-                    resolve(args);
+                switch (args.length) {
+                    case 0:
+                        resolve(undefined);
+                        break;
+                    case 1:
+                        resolve(args[0]);
+                        break;
+                    default:
+                        resolve(args);
+                        break;
                 }
             });
         });

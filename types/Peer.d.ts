@@ -26,7 +26,7 @@ interface PeerEvents {
     track(track: RTCTrackEvent): void;
 }
 type PeerEventNames = EventEmitterTypes.EventNames<PeerEvents>;
-type ExtractSingleTuple<T> = T extends [infer R] ? R : T;
+type EventEmitterReturnType<T> = T extends [] ? void : T extends [infer R] ? R : T;
 export declare class Peer extends EventEmitter<PeerEvents> {
     private id;
     private initiator;
@@ -48,6 +48,7 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     getChannel(): RTCDataChannel | undefined;
     isReady(): boolean | undefined;
     isClosed(): boolean;
+    ready(): Promise<void>;
     isInitiator(): boolean;
     init(): Promise<this>;
     close(): this;
@@ -56,7 +57,7 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     writableStream(): WritableStream<string | Blob | ArrayBuffer | ArrayBufferView>;
     readableStream(): ReadableStream<string | Blob | ArrayBuffer>;
     signal(message: any): Promise<this>;
-    waitOnce<K extends PeerEventNames>(event: K): Promise<ExtractSingleTuple<EventEmitter.ArgumentMap<PeerEvents>[K]>>;
+    waitOnce<K extends PeerEventNames>(event: K): Promise<EventEmitterReturnType<EventEmitter.ArgumentMap<PeerEvents>[K]>>;
     addTransceiverFromKind(kind: string, init?: RTCRtpTransceiverInit): RTCRtpTransceiver | null;
     addTrack(track: MediaStreamTrack): RTCRtpSender;
     removeTrack(sender: RTCRtpSender): this;

@@ -31,20 +31,36 @@ tape("basic", async (assert: tape.Test) => {
 	await peer1ConnectPromise;
 	await peer2ConnectPromise;
 
-	assert.notEqual(peer1.getConnection(), undefined);
-	assert.notEqual(peer2.getConnection(), undefined);
+	assert.notEqual(
+		peer1.getConnection(),
+		undefined,
+		"peer1 should be connected",
+	);
+	assert.notEqual(
+		peer2.getConnection(),
+		undefined,
+		"peer2 should be connected",
+	);
 
-	assert.notEqual(peer1.getChannel(), undefined);
-	assert.notEqual(peer2.getChannel(), undefined);
+	assert.notEqual(peer1.getChannel(), undefined, "peer1 should have a channel");
+	assert.notEqual(peer2.getChannel(), undefined, "peer2 should have a channel");
 
-	const peer1MessagePromise = peer1.waitOnce("data");
-	const peer2MessagePromise = peer2.waitOnce("data");
+	const peer1DataPromise = peer1.waitOnce("data");
+	const peer2DataPromise = peer2.waitOnce("data");
 
 	peer1.send("Hello");
 	peer2.send("World");
 
-	assert.equal(await peer1MessagePromise, "World");
-	assert.equal(await peer2MessagePromise, "Hello");
+	assert.equal(
+		await peer1DataPromise,
+		"World",
+		"peer2 should send `World` to peer1",
+	);
+	assert.equal(
+		await peer2DataPromise,
+		"Hello",
+		"peer1 should send `Hello` to peer2",
+	);
 
 	const peer1ClosePromise = peer1.waitOnce("close");
 	const peer2ClosePromise = peer2.waitOnce("close");
@@ -145,10 +161,12 @@ tape("streams api", async (assert: tape.Test) => {
 	const peer1 = new Peer({
 		id: "peer1",
 		webrtc: wrtc,
+		maxChannelMessageSize: 1,
 	});
 	const peer2 = new Peer({
 		id: "peer2",
 		webrtc: wrtc,
+		maxChannelMessageSize: 1,
 	});
 	peer1.on("signal", (message) => {
 		peer2.signal(message);
@@ -169,11 +187,23 @@ tape("streams api", async (assert: tape.Test) => {
 	const readableStream = peer2.readableStream();
 
 	const writer = writableStream.getWriter();
-	await writer.write("Hello, world!");
+	const messageToSend = "Hello, world!";
+	const wrotePromise = writer.write(messageToSend);
 
 	const reader = readableStream.getReader();
-	const { value } = await reader.read();
-	assert.equal(value, "Hello, world!");
+	await wrotePromise;
+
+	let message = "";
+	let next = await reader.read();
+	while (!next.done) {
+		message += next.value;
+		if (message.length === messageToSend.length) {
+			reader.cancel();
+			break;
+		}
+		next = await reader.read();
+	}
+	assert.equal(message, "Hello, world!");
 
 	const peer1ClosePromise = peer1.waitOnce("close");
 	const peer2ClosePromise = peer2.waitOnce("close");
