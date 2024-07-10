@@ -232,9 +232,6 @@ export class Peer extends EventEmitter {
         return this;
     }
     async negotiate() {
-        if (!this.connection) {
-            throw new Error("Connection not initialized");
-        }
         if (this.initiator) {
             await this.createOffer();
         }
@@ -309,20 +306,11 @@ export class Peer extends EventEmitter {
         if (!this.connection) {
             return;
         }
+        console.debug(`${this.id}: connection state ${this.connection.connectionState}`);
         switch (this.connection.connectionState) {
-            case "connected":
-                console.debug(`${this.id}: connection state connected`);
-                break;
             case "failed":
-                console.debug(`${this.id}: connection state failed`);
-                this.internalClose(true);
-                break;
             case "disconnected":
-                console.debug(`${this.id}: connection state disconnected`);
-                this.internalClose(true);
-                break;
             case "closed":
-                console.debug(`${this.id}: connection state closed`);
                 this.internalClose(true);
                 break;
         }

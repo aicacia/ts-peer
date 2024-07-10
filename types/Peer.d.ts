@@ -63,7 +63,7 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     addTrack(track: MediaStreamTrack): RTCRtpSender;
     removeTrack(sender: RTCRtpSender): this;
     private internalSignal;
-    private negotiate;
+    negotiate(): Promise<this>;
     private createOffer;
     private createAnswer;
     private createPeer;
