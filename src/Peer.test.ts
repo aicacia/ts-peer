@@ -12,10 +12,14 @@ tape("basic", async (assert: tape.Test) => {
 		webrtc: wrtc,
 	});
 	peer1.on("signal", (message) => {
-		peer2.signal(message);
+		setTimeout(() => {
+			peer2.signal(message);
+		}, 100);
 	});
 	peer2.on("signal", (message) => {
-		peer1.signal(message);
+		setTimeout(() => {
+			peer1.signal(message);
+		}, 100);
 	});
 
 	assert.equal(peer1.getId(), "peer1");
@@ -90,10 +94,14 @@ tape("streams", async (assert: tape.Test) => {
 		},
 	});
 	peer1.on("signal", (message) => {
-		peer2.signal(message);
+		setTimeout(() => {
+			peer2.signal(message);
+		}, 100);
 	});
 	peer2.on("signal", (message) => {
-		peer1.signal(message);
+		setTimeout(() => {
+			peer1.signal(message);
+		}, 100);
 	});
 
 	const peer1ConnectPromise = peer1.waitOnce("connect");
@@ -169,10 +177,14 @@ tape("streams api", async (assert: tape.Test) => {
 		maxChannelMessageSize: 1,
 	});
 	peer1.on("signal", (message) => {
-		peer2.signal(message);
+		setTimeout(() => {
+			peer2.signal(message);
+		}, 100);
 	});
 	peer2.on("signal", (message) => {
-		peer1.signal(message);
+		setTimeout(() => {
+			peer1.signal(message);
+		}, 100);
 	});
 
 	const peer1ConnectPromise = peer1.waitOnce("connect");

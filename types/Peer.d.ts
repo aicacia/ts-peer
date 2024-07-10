@@ -24,6 +24,7 @@ interface PeerEvents {
     close(): void;
     transceiver(transceiver: RTCRtpTransceiver): void;
     track(track: RTCTrackEvent): void;
+    negotiated(): void;
 }
 type PeerEventNames = EventEmitterTypes.EventNames<PeerEvents>;
 type EventEmitterReturnType<T> = T extends [] ? void : T extends [infer R] ? R : T;
@@ -62,8 +63,6 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     addTrack(track: MediaStreamTrack): RTCRtpSender;
     removeTrack(sender: RTCRtpSender): this;
     private internalSignal;
-    private runningNegotiation;
-    private needsNegotiation;
     private negotiate;
     private createOffer;
     private createAnswer;
@@ -73,6 +72,7 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     private onNegotiationNeeded;
     private onICEConnectionStateChange;
     private onICEGatheringStateChange;
+    private onSignalingStateChange;
     private onICECandidate;
     private onTrackRemote;
     private onDataChannel;

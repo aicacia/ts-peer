@@ -27,7 +27,6 @@ class Peer extends eventemitter3_1.EventEmitter {
         this.config = { iceServers: [] };
         this.pendingCandidates = [];
         this.webrtc = DEFAULT_WEBRTC;
-        this.runningNegotiation = false;
         this.id = options.id || (0, uuid_1.v4)();
         this.channelName = options.channelName || (0, uuid_1.v4)();
         if (options.channelConfig) {
@@ -120,7 +119,7 @@ class Peer extends eventemitter3_1.EventEmitter {
         console.debug(`${this.id}: received signal message=${message.type}`);
         switch (message.type) {
             case "renegotiate": {
-                return this.needsNegotiation();
+                return this.negotiate();
             }
             case "transceiverRequest": {
                 if (!this.initiator) {
@@ -165,7 +164,6 @@ class Peer extends eventemitter3_1.EventEmitter {
                     type: message.type,
                     sdp,
                 });
-                console.debug(`${this.id}: setting remote sdp`);
                 await this.connection.setRemoteDescription(sessionDescription);
                 for (const candidate of this.pendingCandidates) {
                     await this.connection.addIceCandidate(candidate);
@@ -174,6 +172,8 @@ class Peer extends eventemitter3_1.EventEmitter {
                 if (((_b = (_a = this.connection) === null || _a === void 0 ? void 0 : _a.remoteDescription) === null || _b === void 0 ? void 0 : _b.type) === "offer") {
                     await this.createAnswer();
                 }
+                this.emit("negotiated");
+                console.debug(`${this.id}: set remote sdp`);
                 return this;
             }
             default: {
@@ -236,30 +236,11 @@ class Peer extends eventemitter3_1.EventEmitter {
         this.emit("signal", message);
         return this;
     }
-    async needsNegotiation() {
-        if (!this.connection) {
-            throw new Error("Connection not initialized");
-        }
-        if (this.initiator) {
-            if (!this.runningNegotiation) {
-                try {
-                    this.runningNegotiation = true;
-                    await asap();
-                    await this.negotiate();
-                }
-                finally {
-                    this.runningNegotiation = false;
-                }
-            }
-        }
-        return this;
-    }
     async negotiate() {
         if (!this.connection) {
             throw new Error("Connection not initialized");
         }
         if (this.initiator) {
-            await waitMS(0);
             await this.createOffer();
         }
         else {
@@ -301,6 +282,7 @@ class Peer extends eventemitter3_1.EventEmitter {
         this.connection.addEventListener("icegatheringstatechange", this.onICEGatheringStateChange.bind(this));
         this.connection.addEventListener("connectionstatechange", this.onConnectionStateChange.bind(this));
         this.connection.addEventListener("icecandidate", this.onICECandidate.bind(this));
+        this.connection.addEventListener("signalingstatechange", this.onSignalingStateChange.bind(this));
         this.connection.addEventListener("track", this.onTrackRemote.bind(this));
         if (this.initiator) {
             const channel = this.connection.createDataChannel(this.channelName, this.channelConfig);
@@ -334,16 +316,18 @@ class Peer extends eventemitter3_1.EventEmitter {
         }
         switch (this.connection.connectionState) {
             case "connected":
-                console.debug(`${this.id}: connected`);
+                console.debug(`${this.id}: connection state connected`);
                 break;
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
             case "failed":
-                console.debug(`${this.id}: failed`);
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
+                console.debug(`${this.id}: connection state failed`);
+                this.internalClose(true);
+                break;
             case "disconnected":
-                console.debug(`${this.id}: disconnected`);
+                console.debug(`${this.id}: connection state disconnected`);
+                this.internalClose(true);
+                break;
             case "closed":
-                console.debug(`${this.id}: closed`);
+                console.debug(`${this.id}: connection state closed`);
                 this.internalClose(true);
                 break;
         }
@@ -352,48 +336,25 @@ class Peer extends eventemitter3_1.EventEmitter {
         if (!this.connection) {
             return;
         }
-        return this.needsNegotiation();
+        return this.negotiate();
     }
     onICEConnectionStateChange() {
         if (!this.connection) {
             return;
         }
-        switch (this.connection.iceConnectionState) {
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
-            case "new":
-                console.debug(`${this.id}: new`);
-            case "checking":
-                console.debug(`${this.id}: checking`);
-                break;
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
-            case "connected":
-                console.debug(`${this.id}: connected`);
-            case "completed":
-                console.debug(`${this.id}: completed`);
-                break;
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
-            case "failed":
-                console.debug(`${this.id}: failed`);
-            // biome-ignore lint/suspicious/noFallthroughSwitchClause:
-            case "disconnected":
-                console.debug(`${this.id}: disconnected`);
-            case "closed":
-                console.debug(`${this.id}: closed`);
-                this.internalClose(true);
-                break;
-        }
+        console.debug(`${this.id}: ice connection state ${this.connection.iceConnectionState}`);
     }
     onICEGatheringStateChange() {
         if (!this.connection) {
             return;
         }
-        switch (this.connection.iceGatheringState) {
-            case "new":
-            case "gathering":
-                break;
-            case "complete":
-                break;
+        console.debug(`${this.id}: ice gathering state ${this.connection.iceGatheringState}`);
+    }
+    onSignalingStateChange() {
+        if (!this.connection) {
+            return;
         }
+        console.debug(`${this.id}: signaling state ${this.connection.signalingState}`);
     }
     onICECandidate(event) {
         if (event.candidate) {
