@@ -1,7 +1,6 @@
 import { EventEmitter, type EventEmitter as EventEmitterTypes } from "eventemitter3";
 export interface PeerOptions {
     id?: string;
-    trickle?: boolean;
     sdpTransform?: (sdp?: string) => string;
     channelName?: string;
     channelConfig?: RTCDataChannelInit;
@@ -35,7 +34,6 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     private channelConfig?;
     private channel?;
     private maxChannelMessageSize;
-    private trickle;
     private sdpTransform;
     private config;
     private connection?;

@@ -22,7 +22,6 @@ class Peer extends eventemitter3_1.EventEmitter {
         super();
         this.initiator = false;
         this.maxChannelMessageSize = defaultMaxChannelMessageSize;
-        this.trickle = true;
         this.sdpTransform = sdpTransform;
         this.config = { iceServers: [] };
         this.pendingCandidates = [];
@@ -31,9 +30,6 @@ class Peer extends eventemitter3_1.EventEmitter {
         this.channelName = options.channelName || (0, uuid_1.v4)();
         if (options.channelConfig) {
             this.channelConfig = options.channelConfig;
-        }
-        if (options.trickle === false) {
-            this.trickle = false;
         }
         if (options.sdpTransform) {
             this.sdpTransform = options.sdpTransform;
@@ -250,9 +246,6 @@ class Peer extends eventemitter3_1.EventEmitter {
             throw new Error("Connection not initialized");
         }
         const offer = await this.connection.createOffer(this.offerConfig);
-        if (!this.trickle) {
-            offer.sdp = filterTrickle(offer.sdp);
-        }
         offer.sdp = this.sdpTransform(offer.sdp);
         await this.connection.setLocalDescription(offer);
         this.internalSignal({ type: offer.type, sdp: offer.sdp });
@@ -263,9 +256,6 @@ class Peer extends eventemitter3_1.EventEmitter {
             throw new Error("Connection not initialized");
         }
         const answer = await this.connection.createAnswer(this.answerConfig);
-        if (!this.trickle) {
-            answer.sdp = filterTrickle(answer.sdp);
-        }
         answer.sdp = this.sdpTransform(answer.sdp);
         await this.connection.setLocalDescription(answer);
         this.internalSignal({ type: answer.type, sdp: answer.sdp });
@@ -374,9 +364,6 @@ class Peer extends eventemitter3_1.EventEmitter {
     }
 }
 exports.Peer = Peer;
-function filterTrickle(sdp) {
-    return sdp === null || sdp === void 0 ? void 0 : sdp.replace(/a=ice-options:trickle\s\n/g, "");
-}
 function sdpTransform(sdp) {
     return sdp;
 }
