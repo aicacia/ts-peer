@@ -1,4 +1,5 @@
 .github/
+.husky/
 .nyc_output/
 .vscode/
 coverage/
@@ -7,10 +8,9 @@ src/
 test-data/
 node_modules/
 .editorconfig
-.eslintignore
-.eslintrc
+biome.json
 .gitignore
 npm-debug.log
-rollup.config.js
+rollup.config.mjs
 tsconfig.esm.json
 tsconfig.json
