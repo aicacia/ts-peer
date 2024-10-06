@@ -25,8 +25,8 @@ tape("basic", async (assert: tape.Test) => {
 	assert.equal(peer1.getId(), "peer1");
 	assert.equal(peer2.getId(), "peer2");
 
-	const peer1ConnectPromise = peer1.waitOnce("connect");
-	const peer2ConnectPromise = peer2.waitOnce("connect");
+	const peer1ConnectPromise = peer1.ready();
+	const peer2ConnectPromise = peer2.ready();
 
 	await peer1.init();
 	assert.true(peer1.isInitiator());
@@ -49,8 +49,8 @@ tape("basic", async (assert: tape.Test) => {
 	assert.notEqual(peer1.getChannel(), undefined, "peer1 should have a channel");
 	assert.notEqual(peer2.getChannel(), undefined, "peer2 should have a channel");
 
-	const peer1DataPromise = peer1.waitOnce("data");
-	const peer2DataPromise = peer2.waitOnce("data");
+	const peer1DataPromise = peer1.data();
+	const peer2DataPromise = peer2.data();
 
 	peer1.send("Hello");
 	peer2.send("World");
@@ -66,8 +66,8 @@ tape("basic", async (assert: tape.Test) => {
 		"peer1 should send `Hello` to peer2",
 	);
 
-	const peer1ClosePromise = peer1.waitOnce("close");
-	const peer2ClosePromise = peer2.waitOnce("close");
+	const peer1ClosePromise = peer1.closed();
+	const peer2ClosePromise = peer2.closed();
 
 	peer1.close();
 	peer2.close();
@@ -104,8 +104,8 @@ tape("streams", async (assert: tape.Test) => {
 		}, 100);
 	});
 
-	const peer1ConnectPromise = peer1.waitOnce("connect");
-	const peer2ConnectPromise = peer2.waitOnce("connect");
+	const peer1ConnectPromise = peer1.ready();
+	const peer2ConnectPromise = peer2.ready();
 
 	await peer1.init();
 
@@ -153,8 +153,8 @@ tape("streams", async (assert: tape.Test) => {
 	track.stop();
 	sink.stop();
 
-	const peer1ClosePromise = peer1.waitOnce("close");
-	const peer2ClosePromise = peer2.waitOnce("close");
+	const peer1ClosePromise = peer1.closed();
+	const peer2ClosePromise = peer2.closed();
 
 	peer1.close();
 	peer2.close();
@@ -187,8 +187,8 @@ tape("streams api", async (assert: tape.Test) => {
 		}, 100);
 	});
 
-	const peer1ConnectPromise = peer1.waitOnce("connect");
-	const peer2ConnectPromise = peer2.waitOnce("connect");
+	const peer1ConnectPromise = peer1.ready();
+	const peer2ConnectPromise = peer2.ready();
 
 	await peer1.init();
 
@@ -217,8 +217,8 @@ tape("streams api", async (assert: tape.Test) => {
 	}
 	assert.equal(message, "Hello, world!");
 
-	const peer1ClosePromise = peer1.waitOnce("close");
-	const peer2ClosePromise = peer2.waitOnce("close");
+	const peer1ClosePromise = peer1.closed();
+	const peer2ClosePromise = peer2.closed();
 
 	peer1.close();
 	peer2.close();

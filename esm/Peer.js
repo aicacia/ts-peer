@@ -66,6 +66,12 @@ export class Peer extends EventEmitter {
         }
         return this.waitOnce("connect");
     }
+    data() {
+        return this.waitOnce("data");
+    }
+    closed() {
+        return this.waitOnce("close");
+    }
     isInitiator() {
         return this.initiator;
     }

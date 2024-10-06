@@ -30,6 +30,9 @@ export default [
 			}),
 			typescript({
 				tsconfig: "./tsconfig.esm.json",
+				compilerOptions: {
+					outDir: "browser",
+				},
 			}),
 		],
 	},

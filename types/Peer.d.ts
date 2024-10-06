@@ -48,6 +48,8 @@ export declare class Peer extends EventEmitter<PeerEvents> {
     isReady(): boolean | undefined;
     isClosed(): boolean;
     ready(): Promise<void>;
+    data(): Promise<string | Blob | ArrayBuffer | Uint8Array>;
+    closed(): Promise<void>;
     isInitiator(): boolean;
     init(): this;
     close(): this;

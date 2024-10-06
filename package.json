@@ -33,10 +33,10 @@
 	"devDependencies": {
 		"@biomejs/biome": "1",
 		"@roamhq/wrtc": "0",
-		"@rollup/plugin-commonjs": "26",
+		"@rollup/plugin-commonjs": "28",
 		"@rollup/plugin-node-resolve": "15",
 		"@rollup/plugin-terser": "0",
-		"@rollup/plugin-typescript": "11",
+		"@rollup/plugin-typescript": "12",
 		"@types/tape": "5",
 		"@types/uuid": "10",
 		"husky": "9",
