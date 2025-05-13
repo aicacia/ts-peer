@@ -39,7 +39,7 @@ const DEFAULT_WEBRTC: PeerWebRTC = {
 			: (RTCIceCandidate as never),
 };
 
-type SignalMessage = {
+export type SignalMessage = {
 	type: "renegotiate";
 	renegotiate?: boolean;
 } | {
