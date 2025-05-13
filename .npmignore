@@ -2,6 +2,7 @@
 node_modules/
 coverage/
 docs/
+src/
 .nyc_output/
 npm-debug.log
 *.0x

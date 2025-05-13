@@ -39,8 +39,22 @@ const DEFAULT_WEBRTC: PeerWebRTC = {
 			: (RTCIceCandidate as never),
 };
 
+type SignalMessage = {
+	type: "renegotiate";
+	renegotiate?: boolean;
+} | {
+	type: "transceiverRequest"
+	transceiverRequest: {
+		kind: string;
+		init?: RTCRtpTransceiverInit;
+	}
+} | {
+	type: "candidate";
+	candidate: RTCIceCandidateInit;
+} | RTCSessionDescriptionInit;
+
 interface PeerEvents {
-	signal(message: never): void;
+	signal(message: SignalMessage): void;
 	connect(): void;
 	data(event: string | Blob | ArrayBuffer | Uint8Array): void;
 	error(error: Error): void;
@@ -54,10 +68,10 @@ type PeerEventNames = EventEmitterTypes.EventNames<PeerEvents>;
 type PeerEventArguments = EventEmitterTypes.ArgumentMap<PeerEvents>;
 type EventEmitterReturnType<T> = T extends []
 	? // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-		void
+	void
 	: T extends [infer R]
-		? R
-		: T;
+	? R
+	: T;
 
 export class Peer extends EventEmitter<PeerEvents> {
 	private id: string;
@@ -74,7 +88,7 @@ export class Peer extends EventEmitter<PeerEvents> {
 	private pendingCandidates: RTCIceCandidateInit[] = [];
 	private webrtc: PeerWebRTC = DEFAULT_WEBRTC;
 
-	constructor(options: PeerOptions) {
+	constructor(options: PeerOptions = {}) {
 		super();
 		this.id = options.id || uuidv4();
 		this.channelName = options.channelName || uuidv4();
@@ -178,8 +192,7 @@ export class Peer extends EventEmitter<PeerEvents> {
 		return readableStreamFromChannel(this.channel);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	async signal(message: any) {
+	async signal(message: SignalMessage) {
 		if (!this.connection) {
 			await this.createPeer();
 		}
@@ -309,8 +322,7 @@ export class Peer extends EventEmitter<PeerEvents> {
 		return this;
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	private internalSignal(message: any) {
+	private internalSignal(message: SignalMessage) {
 		this.emit("signal", message);
 		return this;
 	}
@@ -354,44 +366,38 @@ export class Peer extends EventEmitter<PeerEvents> {
 		this.connection = new this.webrtc.RTCPeerConnection(this.config);
 		this.connection.addEventListener(
 			"negotiationneeded",
-			this.onNegotiationNeeded.bind(this),
+			this.onNegotiationNeeded,
 		);
 		this.connection.addEventListener(
 			"iceconnectionstatechange",
-			this.onICEConnectionStateChange.bind(this),
+			this.onICEConnectionStateChange,
 		);
 		this.connection.addEventListener(
 			"icegatheringstatechange",
-			this.onICEGatheringStateChange.bind(this),
+			this.onICEGatheringStateChange,
 		);
 		this.connection.addEventListener(
 			"connectionstatechange",
-			this.onConnectionStateChange.bind(this),
+			this.onConnectionStateChange,
 		);
-		this.connection.addEventListener(
-			"icecandidate",
-			this.onICECandidate.bind(this),
-		);
+		this.connection.addEventListener("icecandidate", this.onICECandidate);
 		this.connection.addEventListener(
 			"signalingstatechange",
-			this.onSignalingStateChange.bind(this),
+			this.onSignalingStateChange,
 		);
-		this.connection.addEventListener("track", this.onTrackRemote.bind(this));
+		this.connection.addEventListener("track", this.onTrackRemote);
 
 		if (this.initiator) {
 			const channel = this.connection.createDataChannel(
 				this.channelName,
 				this.channelConfig,
 			);
-			channel.addEventListener("open", this.onDataChannelOpen.bind(this));
-			channel.addEventListener("message", this.onDataChannelMessage.bind(this));
-			channel.addEventListener("error", this.onDataChannelError.bind(this));
+			channel.addEventListener("open", this.onDataChannelOpen);
+			channel.addEventListener("message", this.onDataChannelMessage);
+			channel.addEventListener("error", this.onDataChannelError);
 			this.channel = channel;
 		} else {
-			this.connection.addEventListener(
-				"datachannel",
-				this.onDataChannel.bind(this),
-			);
+			this.connection.addEventListener("datachannel", this.onDataChannel);
 		}
 		return this;
 	}
@@ -413,7 +419,7 @@ export class Peer extends EventEmitter<PeerEvents> {
 		return this;
 	}
 
-	private onConnectionStateChange() {
+	private onConnectionStateChange = () => {
 		if (!this.connection) {
 			return;
 		}
@@ -428,16 +434,16 @@ export class Peer extends EventEmitter<PeerEvents> {
 				this.internalClose(true);
 				break;
 		}
-	}
+	};
 
-	private onNegotiationNeeded() {
+	private onNegotiationNeeded = () => {
 		if (!this.connection) {
 			return;
 		}
 		return this.negotiate();
-	}
+	};
 
-	private onICEConnectionStateChange() {
+	private onICEConnectionStateChange = () => {
 		if (!this.connection) {
 			return;
 		}
@@ -445,9 +451,9 @@ export class Peer extends EventEmitter<PeerEvents> {
 		console.debug(
 			`${this.id}: ice connection state ${this.connection.iceConnectionState}`,
 		);
-	}
+	};
 
-	private onICEGatheringStateChange() {
+	private onICEGatheringStateChange = () => {
 		if (!this.connection) {
 			return;
 		}
@@ -455,62 +461,56 @@ export class Peer extends EventEmitter<PeerEvents> {
 		console.debug(
 			`${this.id}: ice gathering state ${this.connection.iceGatheringState}`,
 		);
-	}
+	};
 
-	private onSignalingStateChange() {
+	private onSignalingStateChange = () => {
 		if (!this.connection) {
 			return;
 		}
 		console.debug(
 			`${this.id}: signaling state ${this.connection.signalingState}`,
 		);
-	}
+	};
 
-	private onICECandidate(event: RTCPeerConnectionIceEvent) {
+	private onICECandidate = (event: RTCPeerConnectionIceEvent) => {
 		if (event.candidate) {
 			this.internalSignal({
 				type: "candidate",
 				candidate: event.candidate,
 			});
 		}
-	}
+	};
 
-	private onTrackRemote(event: RTCTrackEvent) {
+	private onTrackRemote = (event: RTCTrackEvent) => {
 		this.emit("track", event);
-	}
+	};
 
-	private onDataChannel(event: RTCDataChannelEvent) {
+	private onDataChannel = (event: RTCDataChannelEvent) => {
 		const channel = event.channel;
+		channel.addEventListener("open", this.onDataChannelOpen);
+		channel.addEventListener("message", this.onDataChannelMessage);
+		channel.addEventListener("error", this.onDataChannelError);
 		this.channel = channel;
-		this.channel.onopen = this.onDataChannelOpen.bind(this);
-		this.channel.onmessage = this.onDataChannelMessage.bind(this);
-		this.channel.onerror = this.onDataChannelError.bind(this);
-	}
+	};
 
-	private onDataChannelOpen() {
+	private onDataChannelOpen = () => {
 		console.debug(`${this.id}: data channel open`);
 		this.emit("connect");
-	}
+	};
 
-	private onDataChannelMessage(
+	private onDataChannelMessage = (
 		event: MessageEvent<string | Blob | ArrayBuffer | Uint8Array>,
-	) {
+	) => {
 		this.emit("data", event.data);
-	}
+	};
 
-	private onDataChannelError(event: Event) {
+	private onDataChannelError = (event: Event) => {
 		this.emit("error", new Error("DataChannel error", { cause: event }));
-	}
+	};
 }
 
 function sdpTransform(sdp?: string) {
 	return sdp;
-}
-function asap() {
-	return new Promise<void>((resolve) => resolve());
-}
-function waitMS(ms: number) {
-	return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 function write(
